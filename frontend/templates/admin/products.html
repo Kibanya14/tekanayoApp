@@ -1,0 +1,72 @@
+{% extends "admin/basee.html" %}
+{% block title %}Produits Tekanayo{% endblock %}
+{% block header_title %}Gestion des Produits Tekanayo{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+  <section class="xl:col-span-1 card-surface rounded-2xl p-5">
+    <h2 class="text-xl font-bold mb-3"><i class="fas fa-plus-circle text-blue-600 mr-2"></i>Nouveau produit</h2>
+    <form action="{{ url_for('admin_add_platform_product') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input required name="name" placeholder="Nom du produit" class="rounded-xl px-4 py-3 border w-full">
+      <input required name="category" placeholder="Catégorie" class="rounded-xl px-4 py-3 border w-full">
+      <div class="grid grid-cols-2 gap-2">
+        <input type="number" min="0" step="0.01" required name="price" placeholder="Prix" class="rounded-xl px-4 py-3 border w-full">
+        <input type="number" min="0" name="quantity" value="0" placeholder="Stock" class="rounded-xl px-4 py-3 border w-full">
+      </div>
+      <textarea name="description" placeholder="Description" class="rounded-xl px-4 py-3 border w-full min-h-[100px]"></textarea>
+      <input type="file" name="image_file" accept="image/*" class="rounded-xl px-3 py-2 border w-full bg-white">
+      <label class="text-sm flex items-center gap-2"><input type="checkbox" name="is_promoted"> Mettre en promotion</label>
+      <button class="w-full rounded-xl bg-blue-700 text-white py-3 hover:bg-blue-600 transition"><i class="fas fa-save mr-2"></i>Ajouter</button>
+    </form>
+  </section>
+
+  <section class="xl:col-span-2 card-surface rounded-2xl p-5">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+      <h2 class="text-xl font-bold"><i class="fas fa-box-open text-indigo-600 mr-2"></i>Catalogue du portail</h2>
+      <input id="productSearch" type="text" placeholder="Rechercher un produit..." class="rounded-xl px-4 py-2 border w-full md:w-72">
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm" id="productsTable">
+        <thead>
+          <tr class="text-left text-slate-500 border-b border-[var(--border)]">
+            <th class="py-2 pr-2">Produit</th><th class="py-2 pr-2">Catégorie</th><th class="py-2 pr-2">Prix</th><th class="py-2 pr-2">Stock</th><th class="py-2 pr-2">Promo</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+          <tr class="border-b border-[var(--border)] hover:bg-blue-50/40">
+            <td class="py-3 pr-2 font-medium">{{ p.name }}</td>
+            <td class="py-3 pr-2">{{ p.category }}</td>
+            <td class="py-3 pr-2">{{ convert_price(p.price, from_currency=(settings.currency if settings and settings.currency else 'USD')) }}</td>
+            <td class="py-3 pr-2">{{ p.quantity }}</td>
+            <td class="py-3 pr-2">{{ 'Oui' if p.is_promoted else 'Non' }}</td>
+            <td class="py-3">
+              <form method="POST" action="{{ url_for('admin_delete_platform_product', product_id=p.id) }}" onsubmit="return confirm('Supprimer ce produit ?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="px-3 py-1 rounded-lg border text-xs text-red-700 hover:bg-red-50"><i class="fas fa-trash mr-1"></i>Supprimer</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="py-5 text-center text-gray-500">Aucun produit Tekanayo enregistré.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const productSearch = document.getElementById('productSearch');
+if (productSearch) {
+  productSearch.addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#productsTable tbody tr').forEach((tr) => {
+      tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+}
+</script>
+{% endblock %}

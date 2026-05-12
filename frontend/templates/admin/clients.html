@@ -1,0 +1,50 @@
+{% extends "admin/basee.html" %}
+{% block title %}Clients Tekanayo{% endblock %}
+{% block header_title %}Gestion des Clients Tekanayo{% endblock %}
+{% block content %}
+<div class="card-surface rounded-2xl p-5">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl font-bold"><i class="fas fa-users text-green-600 mr-2"></i>Clients enregistrés</h2>
+    <input id="clientSearch" type="text" placeholder="Rechercher client..." class="rounded-xl px-4 py-2 border w-64">
+  </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm" id="clientsTable">
+      <thead><tr class="text-left text-slate-500 border-b border-[var(--border)]"><th class="py-2 pr-2">Nom</th><th class="py-2 pr-2">Email</th><th class="py-2 pr-2">Téléphone</th><th>Inscription</th></tr></thead>
+      <tbody>
+        {% for c in clients %}
+        <tr class="border-b border-[var(--border)] hover:bg-green-50/40">
+          <td class="py-3 pr-2">{{ c.first_name }} {{ c.last_name }}</td>
+          <td class="py-3 pr-2">{{ c.email }}</td>
+          <td class="py-3 pr-2">
+            {%- if c.country_code and c.phone_number -%}
+              {% set dial = countries.get_country_dial_code(c.country_code) %}
+              {{ dial }} {{ c.phone_number }}
+            {%- elif c.phone -%}
+              {{ c.phone }}
+            {%- else -%}
+              -
+            {%- endif -%}
+          </td>
+          <td class="py-3">{{ c.created_at.strftime('%d/%m/%Y %H:%M') if c.created_at else '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="py-5 text-center text-gray-500">Aucun client.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const clientSearch = document.getElementById('clientSearch');
+if (clientSearch) {
+  clientSearch.addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#clientsTable tbody tr').forEach((tr) => {
+      tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+}
+</script>
+{% endblock %}

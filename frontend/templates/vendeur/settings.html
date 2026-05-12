@@ -1,0 +1,372 @@
+{% extends "vendeur/basee.html" %}
+
+{% block title %}Paramètres - Admin{% endblock %}
+{% block header_title %}Paramètres de la boutique{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/phone-input.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+    <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center space-x-2">
+        <i class="fas fa-link text-indigo-600"></i><span>Liens personnalisés de votre boutique</span>
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="rounded-lg border border-gray-200 p-4 bg-white">
+            <p class="text-sm font-medium text-gray-700 mb-2">Boutique publique</p>
+            <div class="flex items-center gap-2">
+                <input id="shopPublicUrl" type="text" readonly value="{{ shop_public_url }}" class="w-full text-xs px-3 py-2 border rounded-lg bg-gray-50">
+                <button type="button" class="px-3 py-2 text-xs rounded-lg border hover:bg-gray-50" data-copy-target="shopPublicUrl"><i class="fas fa-copy"></i></button>
+            </div>
+        </div>
+        <div class="rounded-lg border border-gray-200 p-4 bg-white">
+            <p class="text-sm font-medium text-gray-700 mb-2">Entrée vendeur personnalisée</p>
+            <div class="flex items-center gap-2">
+                <input id="sellerEntryUrl" type="text" readonly value="{{ seller_space_url }}" class="w-full text-xs px-3 py-2 border rounded-lg bg-gray-50">
+                <button type="button" class="px-3 py-2 text-xs rounded-lg border hover:bg-gray-50" data-copy-target="sellerEntryUrl"><i class="fas fa-copy"></i></button>
+            </div>
+        </div>
+        <div class="rounded-lg border border-gray-200 p-4 bg-white">
+            <p class="text-sm font-medium text-gray-700 mb-2">Entrée livreur personnalisée</p>
+            <div class="flex items-center gap-2">
+                <input id="delivererEntryUrl" type="text" readonly value="{{ deliverer_entry_url }}" class="w-full text-xs px-3 py-2 border rounded-lg bg-gray-50">
+                <button type="button" class="px-3 py-2 text-xs rounded-lg border hover:bg-gray-50" data-copy-target="delivererEntryUrl"><i class="fas fa-copy"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form action="{{ url_for('seller_update_settings', slug=shop.slug) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="pricing_input_currency" id="pricingInputCurrency" value="{{ (current_currency or settings.currency or base_currency) }}">
+
+    <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+            <i class="fas fa-store text-purple-600"></i><span>Informations Générales</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nom de la Boutique</label>
+                <input type="text" name="shop_name" value="{{ settings.shop_name }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Email de Contact</label>
+                <input type="email" name="shop_email" value="{{ settings.shop_email }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <i class="fas fa-phone text-purple-600 mr-1"></i>Téléphone
+                </label>
+                <div class="phone-input-wrapper" 
+                     data-country="{{ settings.shop_country_code or 'CD' }}" 
+                     data-phone="{{ settings.shop_phone_number or '' }}">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Adresse</label>
+                <input type="text" name="shop_address" value="{{ settings.shop_address }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" id="shop_address_field">
+                <input type="hidden" id="shop_address_lat">
+                <input type="hidden" id="shop_address_lon">
+                <input type="hidden" id="shop_address_label">
+                <div class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <button type="button"
+                            class="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg border border-purple-200 hover:bg-purple-50 flex items-center gap-2 w-full sm:w-auto justify-center"
+                            data-geo-btn
+                            data-geo-target="shop_address_field"
+                            data-geo-lat="shop_address_lat"
+                            data-geo-lon="shop_address_lon"
+                            data-geo-label="shop_address_label"
+                            data-geo-map="shop_address_map"
+                            data-geo-status="shop_address_status">
+                        <i class="fas fa-location-crosshairs"></i>
+                        <span>Me géolocaliser</span>
+                    </button>
+                    <p id="shop_address_status" class="text-xs text-gray-500">Optionnel : détecter la position de la boutique.</p>
+                </div>
+                <div class="mt-2 hidden" id="shop_address_map_wrapper">
+                    <iframe id="shop_address_map" class="w-full h-40 rounded-lg border" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+            <i class="fas fa-headset text-blue-600"></i><span>Contacts & Réseaux</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Lien page Facebook</label>
+                <input type="text" name="facebook_url" value="{{ settings.facebook_url }}" placeholder="https://www.facebook.com/votrepage" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                <p class="text-xs text-gray-500 mt-1">Affiché dans le footer public.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Numéro WhatsApp</label>
+                <input type="text" name="whatsapp_number" value="{{ settings.whatsapp_number or settings.shop_phone }}" placeholder="+243..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                <p class="text-xs text-gray-500 mt-1">Utilisé pour le bouton WhatsApp flottant.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Lien groupe WhatsApp</label>
+                <input type="text" name="whatsapp_group_url" value="{{ settings.whatsapp_group_url }}" placeholder="https://chat.whatsapp.com/..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                <p class="text-xs text-gray-500 mt-1">Lien public vers le groupe communauté.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nom d'utilisateur Telegram</label>
+                <input type="text" name="telegram_username" value="{{ settings.telegram_username }}" placeholder="ex: mangastore" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                <p class="text-xs text-gray-500 mt-1">Sans @. Sert pour le bouton Telegram.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Lien Telegram (optionnel)</label>
+                <input type="text" name="telegram_url" value="{{ settings.telegram_url }}" placeholder="https://t.me/mangastore" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                <p class="text-xs text-gray-500 mt-1">Prioritaire sur le nom d'utilisateur s'il est renseigné.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+            <i class="fas fa-money-bill text-green-600"></i><span>Finances & Devise</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Devise</label>
+                <select name="currency" id="currencySelect" data-current-currency="{{ (current_currency or settings.currency or base_currency) }}" data-stored-currency="{{ settings.currency or base_currency }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                    {% for cur in available_currencies %}
+                    <option value="{{ cur }}" {% if (current_currency or settings.currency) == cur %}selected{% endif %}>{{ cur }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Taxe (%)</label>
+                <input type="number" step="0.01" name="tax_rate" value="{{ settings.tax_rate }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Taux USD/CDF</label>
+                <input type="number" step="0.01" name="exchange_rate_usd_cdf" id="exchangeRateInput" value="{{ settings.exchange_rate_usd_cdf or 2200.0 }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="1 USD = ? CDF">
+                <p class="text-xs text-gray-500 mt-1">Ex: 1 USD = 2500 CDF</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Frais de livraison</label>
+                <input type="number" step="0.01" name="shipping_cost" id="shippingCostInput" value="{{ settings.shipping_cost }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                <p class="text-xs text-gray-500 mt-1">
+                    Équivalent <span id="shippingCostTargetLabel">{{ 'USD' if ((current_currency or settings.currency or base_currency) == 'CDF') else 'CDF' }}</span> :
+                    <span id="shippingCostEquivalent">
+                        {{ convert_price(settings.shipping_cost or 0, from_currency=settings.currency or base_currency, to_currency=('USD' if (current_currency or settings.currency or base_currency) == 'CDF' else 'CDF')) }}
+                    </span>
+                </p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Livraison hors centre-ville</label>
+                <input type="number" step="0.01" name="shipping_cost_out" id="shippingCostOutInput" value="{{ settings.shipping_cost_out }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="Ex: 5.00">
+                <p class="text-xs text-gray-500 mt-1">
+                    Équivalent <span id="shippingCostOutTargetLabel">{{ 'USD' if ((current_currency or settings.currency or base_currency) == 'CDF') else 'CDF' }}</span> :
+                    <span id="shippingCostOutEquivalent">
+                        {{ convert_price(settings.shipping_cost_out or 0, from_currency=settings.currency or base_currency, to_currency=('USD' if (current_currency or settings.currency or base_currency) == 'CDF' else 'CDF')) }}
+                    </span>
+                     — utilisée pour la livraison hors centre (remplace l'express).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+            <i class="fas fa-image text-blue-600"></i><span>Logos</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Logo Boutique</label>
+                {% if settings.shop_logo %}
+                <img src="{{ media_url('uploads/logos/' + settings.shop_logo) }}" alt="Logo de la boutique {{ settings.shop_name }}" class="h-16 w-16 rounded-full object-cover mb-2">
+                {% endif %}
+                <input type="file" name="shop_logo" accept="image/*" class="w-full">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Logo Admin</label>
+                {% if settings.admin_logo %}
+                <img src="{{ media_url('uploads/logos/' + settings.admin_logo) }}" alt="Logo interface administrateur de {{ settings.shop_name }}" class="h-16 w-16 rounded-full object-cover mb-2">
+                {% endif %}
+                <input type="file" name="admin_logo" accept="image/*" class="w-full">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Logo Livreur</label>
+                {% if settings.deliverer_logo %}
+                <img src="{{ media_url('uploads/logos/' + settings.deliverer_logo) }}" alt="Logo interface livreur de {{ settings.shop_name }}" class="h-16 w-16 rounded-full object-cover mb-2">
+                {% endif %}
+                <input type="file" name="deliverer_logo" accept="image/*" class="w-full">
+            </div>
+        </div>
+    </div>
+
+    <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+            <i class="fas fa-file-lines text-indigo-600"></i><span>Contenus des pages boutique</span>
+        </h3>
+        <p class="text-sm text-gray-500 mb-4">Ces textes seront affichés dans les pages publiques de votre boutique. Gardez la structure, ajoutez votre contenu personnel.</p>
+        <div class="grid grid-cols-1 gap-5">
+            <div class="content-section">
+                <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-purple-600 transition-colors" onclick="toggleContent('about')">À propos <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-about"></i></label>
+                <textarea name="about_page_content" id="content-about" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 hidden" placeholder="Présentation de la boutique, mission, valeurs...">{{ shop.about_page_content or '' }}</textarea>
+            </div>
+            <div class="content-section">
+                <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-purple-600 transition-colors" onclick="toggleContent('legal')">Mentions légales <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-legal"></i></label>
+                <textarea name="legal_page_content" id="content-legal" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 hidden" placeholder="Raison sociale, responsable, hébergement, informations légales...">{{ shop.legal_page_content or '' }}</textarea>
+            </div>
+            <div class="content-section">
+                <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-purple-600 transition-colors" onclick="toggleContent('terms')">Conditions Générales <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-terms"></i></label>
+                <textarea name="terms_page_content" id="content-terms" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 hidden" placeholder="Conditions de vente, paiement, livraison, garanties...">{{ shop.terms_page_content or '' }}</textarea>
+            </div>
+            <div class="content-section">
+                <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-purple-600 transition-colors" onclick="toggleContent('returns')">Retours & remboursements <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-returns"></i></label>
+                <textarea name="returns_page_content" id="content-returns" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 hidden" placeholder="Délais, procédure, conditions d'acceptation, exclusions...">{{ shop.returns_page_content or '' }}</textarea>
+            </div>
+            <div class="content-section">
+                <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-purple-600 transition-colors" onclick="toggleContent('privacy')">Politique de confidentialité <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-privacy"></i></label>
+                <textarea name="privacy_page_content" id="content-privacy" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 hidden" placeholder="Données collectées, finalités, droits, sécurité...">{{ shop.privacy_page_content or '' }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex justify-end">
+        <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Enregistrer</button>
+    </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const exchangeInput = document.getElementById('exchangeRateInput');
+    const getRate = () => {
+        const val = parseFloat(exchangeInput ? exchangeInput.value : '');
+        return Number.isFinite(val) && val > 0 ? val : 2200.0;
+    };
+    const currencySelect = document.getElementById('currencySelect');
+    const pricingInputCurrency = document.getElementById('pricingInputCurrency');
+    const navCurrencySelect = document.querySelector('header form select[name="currency"]');
+    const shippingInput = document.getElementById('shippingCostInput');
+    const shippingOutInput = document.getElementById('shippingCostOutInput');
+    const shippingTargetLabel = document.getElementById('shippingCostTargetLabel');
+    const shippingOutTargetLabel = document.getElementById('shippingCostOutTargetLabel');
+    const shippingEquiv = document.getElementById('shippingCostEquivalent');
+    const shippingOutEquiv = document.getElementById('shippingCostOutEquivalent');
+
+    function convert(amount, from, to) {
+        const rate = getRate();
+        if (!amount || isNaN(amount)) return 0;
+        if (from === to) return amount;
+        if (from === 'CDF' && to === 'USD') return amount / rate;
+        if (from === 'USD' && to === 'CDF') return amount * rate;
+        return amount;
+    }
+
+    function format(amount) {
+        return parseFloat(amount || 0).toFixed(2);
+    }
+
+    function targetCurrency(current) {
+        return current === 'CDF' ? 'USD' : 'CDF';
+    }
+
+    function updateEquivalents(currentCurrency) {
+        const target = targetCurrency(currentCurrency);
+        shippingTargetLabel.textContent = target;
+        shippingOutTargetLabel.textContent = target;
+        shippingEquiv.textContent = format(convert(parseFloat(shippingInput.value || 0), currentCurrency, target)) + ' ' + target;
+        shippingOutEquiv.textContent = format(convert(parseFloat(shippingOutInput.value || 0), currentCurrency, target)) + ' ' + target;
+    }
+
+    function handleCurrencyChange() {
+        const previousCurrency = currencySelect.dataset.currentCurrency || currencySelect.value;
+        const newCurrency = currencySelect.value;
+        if (previousCurrency === newCurrency) return;
+
+        // Convert existing inputs to the newly selected currency
+        shippingInput.value = format(convert(parseFloat(shippingInput.value || 0), previousCurrency, newCurrency));
+        shippingOutInput.value = format(convert(parseFloat(shippingOutInput.value || 0), previousCurrency, newCurrency));
+
+        currencySelect.dataset.currentCurrency = newCurrency;
+        if (pricingInputCurrency) {
+            pricingInputCurrency.value = newCurrency;
+        }
+        if (navCurrencySelect && navCurrencySelect.value !== newCurrency) {
+            navCurrencySelect.value = newCurrency;
+        }
+        updateEquivalents(newCurrency);
+    }
+
+    const storedCurrency = currencySelect.dataset.storedCurrency || currencySelect.value;
+    if (storedCurrency !== currencySelect.value) {
+        shippingInput.value = format(convert(parseFloat(shippingInput.value || 0), storedCurrency, currencySelect.value));
+        shippingOutInput.value = format(convert(parseFloat(shippingOutInput.value || 0), storedCurrency, currencySelect.value));
+        currencySelect.dataset.currentCurrency = currencySelect.value;
+    }
+    if (pricingInputCurrency) {
+        pricingInputCurrency.value = currencySelect.value;
+    }
+
+    currencySelect.addEventListener('change', handleCurrencyChange);
+    if (navCurrencySelect) {
+        navCurrencySelect.addEventListener('change', () => {
+            if (currencySelect.value === navCurrencySelect.value) return;
+            currencySelect.value = navCurrencySelect.value;
+            handleCurrencyChange();
+        });
+    }
+    if (exchangeInput) {
+        exchangeInput.addEventListener('input', () => updateEquivalents(currencySelect.value));
+    }
+    shippingInput.addEventListener('input', () => updateEquivalents(currencySelect.value));
+    shippingOutInput.addEventListener('input', () => updateEquivalents(currencySelect.value));
+
+    // Initial update
+    updateEquivalents(currencySelect.value);
+
+
+    document.querySelectorAll('[data-copy-target]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const inputId = btn.getAttribute('data-copy-target');
+            const input = document.getElementById(inputId);
+            if (!input || !input.value) return;
+            try {
+                await navigator.clipboard.writeText(input.value);
+                const prev = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-emerald-600"></i>';
+                setTimeout(() => { btn.innerHTML = prev; }, 1200);
+            } catch (e) {
+                input.select();
+                document.execCommand('copy');
+            }
+        });
+    });
+});
+
+function toggleContent(section) {
+  const content = document.getElementById('content-' + section);
+  const icon = document.getElementById('icon-' + section);
+  if (content.classList.contains('hidden')) {
+    content.classList.remove('hidden');
+    icon.classList.add('rotate-180');
+  } else {
+    content.classList.add('hidden');
+    icon.classList.remove('rotate-180');
+  }
+}
+</script>
+
+<script>
+// Inject countries data from Python to JavaScript
+window.COUNTRIES_DATA = [
+    {% for code, name, dial_code in countries_with_dial_codes() %}
+    {% set flag = get_country_flag(code) %}
+    ['{{ code }}', '{{ flag }}', '{{ name }}', '{{ dial_code }}'],
+    {% endfor %}
+];
+</script>
+<script src="{{ url_for('static', filename='js/phone-input.js') }}"></script>
+<script>
+    if (window.COUNTRIES_DATA && window.COUNTRIES_DATA.length > 0) {
+        initPhoneInputs();
+    }
+</script>
+{% endblock %}

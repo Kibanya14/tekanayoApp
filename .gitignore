@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+ecom/
+
+# Environment variables
+.env
+.env.*
+
+# Database
+*.db
+*.sqlite3
+database.db
+
+# IDE/editor
+.vscode/
+.idea/
+.pytest_cache/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploads and media
+uploads/
+
+# Supabase storage local metadata
+.supabase/

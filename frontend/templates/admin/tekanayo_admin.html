@@ -1,0 +1,116 @@
+{% extends "admin/basee.html" %}
+
+{% block title %}Dashboard Tekanayo{% endblock %}
+{% block header_title %}Tableau de Bord Tekanayo{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h2 class="text-lg md:text-xl font-semibold text-gray-700">Rapport général plateforme</h2>
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('tekanayo_admin_sellers') }}" class="text-sm text-blue-600 hover:text-blue-500 flex items-center gap-2">
+                <i class="fas fa-store"></i> Vendeurs
+            </a>
+            <a href="{{ url_for('tekanayo_admin_announcements') }}" class="text-sm text-blue-600 hover:text-blue-500 flex items-center gap-2">
+                <i class="fas fa-bullhorn"></i> Annonces
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-blue-600 flex items-center gap-2"><i class="fas fa-store"></i>Total vendeurs</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_sellers }}</p>
+            <p class="text-xs text-gray-500 mt-1">Actifs: {{ stats.active_sellers }}</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-orange-500 flex items-center gap-2"><i class="fas fa-shopping-cart"></i>Commandes</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_orders }}</p>
+            <p class="text-xs text-gray-500 mt-1">Commandes enregistrées</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-yellow-600 flex items-center gap-2"><i class="fas fa-box"></i>Produits</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_products }}</p>
+            <p class="text-xs text-gray-500 mt-1">Catalogue global</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-green-600 flex items-center gap-2"><i class="fas fa-users"></i>Clients Portail</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_users }}</p>
+            <p class="text-xs text-gray-500 mt-1">Inscrits via tekanayo.com</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-emerald-600 flex items-center gap-2"><i class="fas fa-user-tie"></i>Clients Vendeurs</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_seller_customers }}</p>
+            <p class="text-xs text-gray-500 mt-1">Clients des boutiques</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-indigo-600 flex items-center gap-2"><i class="fas fa-truck"></i>Livreurs</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_deliverers }}</p>
+            <p class="text-xs text-gray-500 mt-1">Livreurs enregistrés</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-purple-600 flex items-center gap-2"><i class="fas fa-user-shield"></i>Admins Vendeurs</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_seller_admins }}</p>
+            <p class="text-xs text-gray-500 mt-1">Administrateurs boutiques</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-rose-600 flex items-center gap-2"><i class="fas fa-user-cog"></i>Admins Plateforme</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_platform_admins }}</p>
+            <p class="text-xs text-gray-500 mt-1">Administrateurs Tekanayo</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div class="xl:col-span-2 card-surface rounded-2xl">
+            <div class="flex items-center justify-between p-4 border-b border-[var(--border)]">
+                <h3 class="font-semibold text-gray-800">Commandes récentes</h3>
+                <a href="{{ url_for('tekanayo_admin_sellers') }}" class="text-sm text-blue-600 hover:text-blue-500">Voir vendeurs</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-[#f7f9ff]">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Commande</th>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Client</th>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Montant</th>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Statut</th>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[var(--border)]">
+                        {% for order in recent_orders %}
+                        <tr class="hover:bg-blue-50/60">
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ order.order_number }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ order.customer_name }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ convert_price(order.total_amount, from_currency=(settings.currency if settings and settings.currency else 'USD')) }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 border border-blue-200">{{ order.status }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ order.created_at.strftime('%d/%m/%Y %H:%M') if order.created_at else '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="px-4 py-3 text-sm text-center text-gray-500">Aucune commande récente.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card-surface rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800">Revenu</h3>
+                <span class="text-xs px-3 py-1 rounded-full bg-gray-100 border border-gray-200">Global</span>
+            </div>
+            <p class="text-3xl font-bold text-gray-900 mt-5">{{ convert_price(stats.total_revenue, from_currency=(settings.currency if settings and settings.currency else 'USD')) }}</p>
+            <div class="grid grid-cols-3 gap-3 mt-8 text-sm">
+                <div><p class="text-purple-700 font-bold">{{ stats.active_sellers }}</p><p class="text-gray-500">Actifs</p></div>
+                <div><p class="text-orange-500 font-bold">{{ stats.suspended_sellers }}</p><p class="text-gray-500">Suspendus</p></div>
+                <div><p class="text-indigo-600 font-bold">{{ announcements|length }}</p><p class="text-gray-500">Annonces</p></div>
+            </div>
+            <p class="text-sm text-gray-500 mt-6">
+                Suivi synthétique des performances de la plateforme Tekanayo.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

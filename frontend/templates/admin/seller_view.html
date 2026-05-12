@@ -1,0 +1,231 @@
+{% extends "admin/basee.html" %}
+
+{% block title %}Vendeur - {{ shop.name }}{% endblock %}
+{% block header_title %}Détails du vendeur{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- En-tête du vendeur -->
+    <div class="card-surface rounded-lg shadow border border-gray-100 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
+                {% if shop.logo_url %}
+                <img src="{{ media_url(shop.logo_url) }}" alt="{{ shop.name }}" class="w-full h-full object-cover">
+                {% else %}
+                <i class="fas fa-store text-indigo-600 text-2xl"></i>
+                {% endif %}
+            </div>
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900">{{ shop.name }}</h2>
+                <p class="text-sm text-gray-600">{{ shop.owner_email }}</p>
+                <p class="text-xs text-gray-500">Créé le {{ shop.created_at.strftime('%d/%m/%Y %H:%M') if shop.created_at else '' }}</p>
+            </div>
+        </div>
+        <div class="space-y-1 text-right">
+            <p class="text-sm text-gray-500">Statut</p>
+            {% if shop.is_active %}
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <i class="fas fa-circle text-[8px]"></i>Actif
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-amber-50 text-amber-700 border border-amber-200">
+                <i class="fas fa-circle text-[8px]"></i>Suspendu
+            </span>
+            {% endif %}
+            <p class="text-xs text-gray-500 mt-1">Abonnement: {{ shop.subscription_status }}</p>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="card-surface rounded-lg shadow border border-gray-100 p-4">
+            <p class="text-sm text-gray-500 flex items-center gap-2"><i class="fas fa-box text-indigo-600"></i>Produits</p>
+            <p class="text-2xl font-bold text-gray-900">{{ products_count }}</p>
+        </div>
+        <div class="card-surface rounded-lg shadow border border-gray-100 p-4">
+            <p class="text-sm text-gray-500 flex items-center gap-2"><i class="fas fa-shopping-cart text-emerald-600"></i>Commandes</p>
+            <p class="text-2xl font-bold text-gray-900">{{ orders_count }}</p>
+        </div>
+        <div class="card-surface rounded-lg shadow border border-gray-100 p-4">
+            <p class="text-sm text-gray-500 flex items-center gap-2"><i class="fas fa-truck text-amber-600"></i>Livreurs</p>
+            <p class="text-2xl font-bold text-gray-900">{{ deliverers_count }}</p>
+        </div>
+        <div class="card-surface rounded-lg shadow border border-gray-100 p-4">
+            <p class="text-sm text-gray-500 flex items-center gap-2"><i class="fas fa-users text-purple-600"></i>Admins</p>
+            <p class="text-2xl font-bold text-gray-900">{{ admins|length }}</p>
+        </div>
+    </div>
+
+    <!-- Informations de la boutique -->
+    <div class="card-surface rounded-lg shadow border border-gray-100 p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4"><i class="fas fa-info-circle mr-2 text-indigo-600"></i>Informations de la boutique</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500">Nom de la boutique</p>
+                <p class="font-semibold text-gray-900">{{ shop.name }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Email propriétaire</p>
+                <p class="font-semibold text-gray-900">{{ shop.owner_email }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Email support</p>
+                <p class="font-semibold text-gray-900">{{ shop.support_email or 'Non défini' }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Téléphone support</p>
+                <p class="font-semibold text-gray-900">{{ shop.support_phone or 'Non défini' }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Niche</p>
+                <p class="font-semibold text-gray-900">{{ shop.category_niche or 'Non définie' }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Devise</p>
+                <p class="font-semibold text-gray-900">{{ shop.currency }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Adresse</p>
+                <p class="font-semibold text-gray-900">{{ shop.address or 'Non définie' }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Slug</p>
+                <p class="font-semibold text-gray-900 font-mono text-xs">{{ shop.slug }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Abonnement -->
+    <div class="card-surface rounded-lg shadow border border-gray-100 p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4"><i class="fas fa-crown mr-2 text-amber-500"></i>Abonnement</h3>
+        {% if subscription %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500">Statut</p>
+                <p class="font-semibold">
+                    {% if subscription.status == 'active' %}
+                    <span class="text-emerald-600">Actif</span>
+                    {% elif subscription.status == 'trial' %}
+                    <span class="text-blue-600">Essai</span>
+                    {% elif subscription.status == 'suspended' %}
+                    <span class="text-amber-600">Suspendu</span>
+                    {% elif subscription.status == 'expired' %}
+                    <span class="text-red-600">Expiré</span>
+                    {% else %}
+                    {{ subscription.status }}
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <p class="text-gray-500">Prix mensuel</p>
+                <p class="font-semibold text-gray-900">{{ subscription.monthly_price }} $</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Total payé</p>
+                <p class="font-semibold text-gray-900">{{ subscription.total_paid }} $</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Début d'essai</p>
+                <p class="font-semibold text-gray-900">{{ subscription.trial_start_date.strftime('%d/%m/%Y') if subscription.trial_start_date else '-' }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Fin d'essai</p>
+                <p class="font-semibold text-gray-900">{{ subscription.trial_end_date.strftime('%d/%m/%Y') if subscription.trial_end_date else '-' }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500">Jours restants</p>
+                <p class="font-semibold text-gray-900">{{ subscription.days_remaining() if subscription.days_remaining else 'N/A' }}</p>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">Aucun abonnement trouvé pour cette boutique.</p>
+        {% endif %}
+    </div>
+
+    <!-- Administrateurs de la boutique -->
+    <div class="card-surface rounded-lg shadow border border-gray-100 p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4"><i class="fas fa-user-tie mr-2 text-indigo-600"></i>Administrateurs ({{ admins|length }})</h3>
+        {% if admins %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-gray-500 border-b border-gray-200">
+                        <th class="py-2 pr-2">Photo</th>
+                        <th class="py-2 pr-2">Nom</th>
+                        <th class="py-2 pr-2">Email</th>
+                        <th class="py-2 pr-2">Téléphone</th>
+                        <th class="py-2 pr-2">Rôle</th>
+                        <th class="py-2">Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for admin in admins %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 pr-2">
+                            <div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden">
+                                {% if admin.profile_picture %}
+                                <img src="{{ media_url(admin.profile_picture) }}" alt="{{ admin.first_name }}" class="w-full h-full object-cover">
+                                {% else %}
+                                <i class="fas fa-user text-indigo-600"></i>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="py-3 pr-2 font-medium text-gray-900">{{ admin.first_name }} {{ admin.last_name }}</td>
+                        <td class="py-3 pr-2 text-gray-600">{{ admin.email }}</td>
+                        <td class="py-3 pr-2 text-gray-600">
+                            {% if admin.country_code and admin.phone_number %}
+                            {% set country = Countries.get_country_dial_code(admin.country_code) %}
+                            {{ country }}{{ admin.phone_number }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="py-3 pr-2">
+                            {% if admin.is_owner %}
+                            <span class="px-2 py-1 rounded-full text-xs bg-purple-50 text-purple-700 border border-purple-200">
+                                <i class="fas fa-crown mr-1"></i>Propriétaire
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 rounded-full text-xs bg-gray-50 text-gray-700 border border-gray-200">
+                                Admin
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3">
+                            {% if admin.is_active %}
+                            <span class="text-emerald-600"><i class="fas fa-circle text-[8px] mr-1"></i>Actif</span>
+                            {% else %}
+                            <span class="text-red-600"><i class="fas fa-circle text-[8px] mr-1"></i>Inactif</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">Aucun administrateur trouvé pour cette boutique.</p>
+        {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-3">
+        <a href="{{ url_for('tekanayo_admin_sellers') }}" class="px-4 py-2 rounded-lg border text-sm hover:bg-gray-50">
+            <i class="fas fa-arrow-left mr-2"></i>Retour à la liste
+        </a>
+        <a href="{{ url_for('shop_public_entry', shop_key=shop.slug ~ '-' ~ shop.id) }}" target="_blank" class="px-4 py-2 rounded-lg border text-sm hover:bg-gray-50">
+            <i class="fas fa-external-link-alt mr-2"></i>Voir la boutique
+        </a>
+        <form action="{{ url_for('admin_toggle_seller', shop_id=shop.id) }}" method="POST" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="px-4 py-2 rounded-lg border text-sm hover:bg-gray-50">
+                {% if shop.is_active %}
+                <i class="fas fa-pause mr-2 text-amber-600"></i>Suspendre
+                {% else %}
+                <i class="fas fa-play mr-2 text-emerald-600"></i>Activer
+                {% endif %}
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

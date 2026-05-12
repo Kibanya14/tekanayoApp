@@ -1,0 +1,92 @@
+{% extends "admin/basee.html" %}
+
+{% block title %}Dashboard - Admin{% endblock %}
+{% block header_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h2 class="text-lg md:text-xl font-semibold text-gray-700">General Report</h2>
+        <a href="{{ url_for('seller_orders_page', slug=shop.slug) }}" class="text-sm text-blue-600 hover:text-blue-500 flex items-center gap-2">
+            <i class="fas fa-rotate"></i> Reload Data
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-blue-600 flex items-center gap-2"><i class="fas fa-cart-shopping"></i>Item Sales</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_orders }}</p>
+            <p class="text-xs text-gray-500 mt-1">Performance en hausse</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-orange-500 flex items-center gap-2"><i class="fas fa-box"></i>New Orders</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_orders }}</p>
+            <p class="text-xs text-gray-500 mt-1">Nouvelles commandes</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-yellow-600 flex items-center gap-2"><i class="fas fa-cube"></i>Total Products</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_products }}</p>
+            <p class="text-xs text-gray-500 mt-1">Catalogue actif</p>
+        </div>
+        <div class="card-surface rounded-2xl p-5">
+            <p class="text-sm text-green-600 flex items-center gap-2"><i class="fas fa-users"></i>Unique Visitors</p>
+            <p class="text-3xl font-bold text-gray-900 mt-3">{{ stats.total_users }}</p>
+            <p class="text-xs text-gray-500 mt-1">Utilisateurs enregistrés</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div class="xl:col-span-2 card-surface rounded-2xl">
+            <div class="flex items-center justify-between p-4 border-b border-[var(--border)]">
+                <h3 class="font-semibold text-gray-800">Sales Report</h3>
+                <a href="{{ url_for('seller_orders_page', slug=shop.slug) }}" class="text-sm text-blue-600 hover:text-blue-500">Voir toutes</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-[#f7f9ff]">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Commande</th>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Client</th>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Montant</th>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Statut</th>
+                            <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[var(--border)]">
+                        {% for order in recent_orders %}
+                        <tr class="hover:bg-blue-50/60">
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-900">{{ order.order_number }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ order.customer.first_name }} {{ order.customer.last_name }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ convert_price(order.total_amount, from_currency=base_currency) }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 border border-blue-200">{{ order.status }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="px-4 py-3 text-sm text-center text-gray-500">Aucune commande récente.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card-surface rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800">Revenue</h3>
+                <span class="text-xs px-3 py-1 rounded-full bg-gray-100 border border-gray-200">This week</span>
+            </div>
+            <p class="text-4xl font-bold text-gray-900 mt-5">{{ (stats.total_revenue or 0)|int }}</p>
+            <p class="text-3xl font-light text-gray-700 mt-1">Total revenue</p>
+            <div class="grid grid-cols-3 gap-3 mt-8 text-sm">
+                <div><p class="text-purple-700 font-bold">+40%</p><p class="text-gray-500">Growth</p></div>
+                <div><p class="text-orange-500 font-bold">2.5%</p><p class="text-gray-500">Refund</p></div>
+                <div><p class="text-indigo-600 font-bold">+23.6%</p><p class="text-gray-500">Online</p></div>
+            </div>
+            <p class="text-sm text-gray-500 mt-6">
+                Suivi synthétique des performances de la boutique et de l'évolution des ventes.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

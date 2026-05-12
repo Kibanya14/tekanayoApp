@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Password - {{ role }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    .gradient-bg { background: linear-gradient(135deg, #334155 0%, #2563eb 60%, #0f172a 100%); }
+    .glass-card { background: rgba(255,255,255,.12); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.25); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col gradient-bg text-white">
+  <main class="flex-1 grid place-items-center p-4">
+  <div class="max-w-md w-full">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}<div class="space-y-2 mb-4">{% for c,m in messages %}<div class="rounded-xl border px-4 py-3 {% if c=='error' %}bg-red-900/60 border-red-400 text-red-100{% else %}bg-emerald-900/60 border-emerald-400 text-emerald-100{% endif %}">{{ m }}</div>{% endfor %}</div>{% endif %}
+    {% endwith %}
+    <section class="glass-card rounded-3xl shadow-2xl p-8">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-white rounded-full grid place-items-center mx-auto mb-3">
+          <i class="fas fa-key text-blue-700 text-2xl"></i>
+        </div>
+        <h1 class="text-2xl font-black">Mot de passe oublié</h1>
+        <p class="text-sm opacity-90 mt-1">Espace {{ role }}</p>
+      </div>
+      <form method="POST" class="mt-4 space-y-3">
+        <div class="relative">
+          <input required type="email" name="email" placeholder="Votre email" class="w-full rounded-xl px-4 py-3 pl-11 bg-white/10 border border-white/30 placeholder-white/70">
+          <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-white/70"></i>
+        </div>
+        <button class="w-full rounded-xl bg-white text-blue-700 font-bold py-3">Envoyer lien de réinitialisation</button>
+      </form>
+    </section>
+  </div>
+  </main>
+  <footer class="text-center text-white opacity-70 text-xs px-4 mt-auto py-6">
+    <p>© Tekanayo App Sécurité, Propulsé par Esperdigi - Tout droit réservé.</p>
+  </footer>
+</body>
+</html>

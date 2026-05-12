@@ -1,0 +1,43 @@
+{% extends "admin/basee.html" %}
+{% block title %}Tâches & Activités Tekanayo{% endblock %}
+{% block header_title %}Journal des Activités Plateforme{% endblock %}
+{% block content %}
+<div class="card-surface rounded-2xl p-5">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-xl font-bold"><i class="fas fa-list-check text-indigo-600 mr-2"></i>Activités consolidées</h2>
+    <input id="eventSearch" type="text" placeholder="Rechercher une activité..." class="rounded-xl px-4 py-2 border w-72">
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm" id="eventsTable">
+      <thead><tr class="text-left text-slate-500 border-b border-[var(--border)]"><th class="py-2 pr-2">Type</th><th class="py-2 pr-2">Élément</th><th class="py-2 pr-2">Acteur</th><th class="py-2 pr-2">Détails</th><th>Date</th></tr></thead>
+      <tbody>
+      {% for e in platform_events %}
+      <tr class="border-b border-[var(--border)] hover:bg-indigo-50/30">
+        <td class="py-3 pr-2">{{ e.kind }}</td>
+        <td class="py-3 pr-2">{{ e.label }}</td>
+        <td class="py-3 pr-2">{{ e.by }}</td>
+        <td class="py-3 pr-2">{{ e.extra }}</td>
+        <td class="py-3">{{ e.created_at.strftime('%d/%m/%Y %H:%M') if e.created_at else '-' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="py-5 text-center text-gray-500">Aucune activité enregistrée.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const eventSearch = document.getElementById('eventSearch');
+if (eventSearch) {
+  eventSearch.addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#eventsTable tbody tr').forEach((tr) => {
+      tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+}
+</script>
+{% endblock %}

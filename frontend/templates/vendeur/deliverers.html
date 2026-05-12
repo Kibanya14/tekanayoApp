@@ -1,0 +1,174 @@
+{% extends "vendeur/basee.html" %}
+
+{% block title %}Livreurs - Admin{% endblock %}
+{% block header_title %}Livreurs{% endblock %}
+
+{% block content %}
+{% set weekly_progress = weekly_progress | default({}) %}
+<div class="space-y-6">
+    <div class="card-surface rounded-lg shadow border border-gray-100 p-4">
+        <h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-user-plus mr-2 text-purple-600"></i>Ajouter un livreur</h3>
+        <form action="{{ url_for('seller_add_deliverer', slug=shop.slug) }}" method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="first_name" placeholder="Prénom" class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" required>
+            <input type="text" name="last_name" placeholder="Nom" class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" required>
+            <input type="email" name="email" placeholder="Email" class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" required>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1">
+                    <i class="fas fa-phone text-purple-600 mr-1"></i>Téléphone
+                </label>
+                <div class="phone-input-wrapper" 
+                     data-country="CD" 
+                     data-phone="">
+                </div>
+            </div>
+            <div class="md:col-span-4 text-right">
+                <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Créer le compte</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card-surface rounded-lg shadow border border-gray-100">
+        <div class="p-4 border-b">
+            <h3 class="font-semibold text-gray-800">Liste des livreurs</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase"><i class="fas fa-user mr-1"></i>Nom</th>
+                        <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase"><i class="fas fa-envelope mr-1"></i>Email</th>
+                        <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase"><i class="fas fa-phone mr-1"></i>Téléphone</th>
+                        <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase"><i class="fas fa-coins mr-1"></i>Commission due</th>
+                        <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase"><i class="fas fa-bolt mr-1"></i>Bonus hebdo</th>
+                        <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase"><i class="fas fa-signal mr-1"></i>Statut</th>
+                        <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase"><i class="fas fa-clock mr-1"></i>Créé le</th>
+                        <th class="px-4 py-2 text-left text-xs text-gray-500 uppercase"><i class="fas fa-ellipsis-h mr-1"></i>Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    {% for d in deliverers %}
+                    {% set prog = weekly_progress.get(d.id, {}) %}
+                    {% set count = prog.count or 0 %}
+                    {% set percent = prog.percent or 0 %}
+                    {% set eligible = prog.eligible %}
+                    {% set outstanding = prog.outstanding or 0 %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-semibold text-gray-800">
+                            {{ d.first_name }} {{ d.last_name }}
+                            {% if d.verification_status == 'verified' %}
+                                <i class="fas fa-certificate text-blue-500 ml-1" title="Vérifié"></i>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700">{{ d.email }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">
+                            {% if d.country_code and d.phone_number %}
+                            <span class="inline-flex items-center gap-1">
+                                <span class="text-lg">{{ get_country_flag(d.country_code) }}</span>
+                                <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{{ get_country_dial_code(d.country_code) }} {{ d.phone_number }}</span>
+                            </span>
+                            {% else %}
+                            <span class="text-gray-400">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700">{{ convert_price(d.commission_due or 0, from_currency=base_currency) }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700 w-64">
+                            <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                <span>Livraisons semaine</span>
+                                <span>{{ count }} ({{ count % 8 }}/8)</span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-2 bg-emerald-500" style="width: {{ percent }}%;"></div>
+                            </div>
+                            <div class="mt-2 flex items-center gap-2">
+                                {% if eligible %}
+                                <form action="{{ url_for('seller_deliverers_page', slug=shop.slug) }}" method="POST" onsubmit="return confirm('Payer le(s) bonus hebdomadaire(s) en attente ?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="px-2 py-1 text-[11px] rounded bg-emerald-600 text-white hover:bg-emerald-700">Payer bonus (x{{ outstanding }})</button>
+                                </form>
+                                {% else %}
+                                <span class="text-[11px] text-gray-500">En cours…</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-700"><span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">{{ status_fr(d.status, 'deliverer') }}</span></td>
+                        <td class="px-4 py-3 text-sm text-gray-500">{{ d.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">
+                            <div class="flex items-center space-x-2">
+                                <a href="{{ url_for('seller_deliverer_view_page', slug=shop.slug, deliverer_id=d.id) }}" class="px-3 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200">Voir</a>
+                                <button type="button" class="px-3 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200 toggle-edit" data-target="edit-{{ d.id }}">Modifier</button>
+                                <form action="{{ url_for('seller_verify_deliverer', slug=shop.slug, deliverer_id=d.id) }}" method="POST" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="px-3 py-1 text-xs rounded border {% if d.verification_status == 'verified' %}bg-blue-50 border-blue-200 text-blue-700{% else %}hover:bg-gray-100 text-gray-700{% endif %}" title="Vérifier">
+                                        <i class="fas fa-certificate mr-1"></i>{{ 'Annuler Vérif' if d.verification_status == 'verified' else 'Vérifier' }}
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('seller_deliverers_page', slug=shop.slug) }}" method="POST" onsubmit="return confirm('Supprimer ce livreur ?');" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="px-3 py-1 text-xs rounded bg-red-100 text-red-700 hover:bg-red-200">Supprimer</button>
+                                </form>
+                            </div>
+                            <div id="edit-{{ d.id }}" class="mt-2 hidden bg-gray-50 rounded border border-gray-200 p-3">
+                                <form action="{{ url_for('seller_deliverers_page', slug=shop.slug) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="text" name="first_name" value="{{ d.first_name }}" class="px-2 py-1 border rounded" placeholder="Prénom">
+                                    <input type="text" name="last_name" value="{{ d.last_name }}" class="px-2 py-1 border rounded" placeholder="Nom">
+                                    <input type="email" name="email" value="{{ d.email }}" class="px-2 py-1 border rounded" placeholder="Email">
+                                    <input type="password" name="password" class="px-2 py-1 border rounded" placeholder="Nouveau mot de passe (optionnel)">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-xs text-gray-600 mb-1">
+                                            <i class="fas fa-phone mr-1"></i>Téléphone
+                                        </label>
+                                        <div class="phone-input-wrapper"
+                                             data-country="{{ d.country_code or 'CD' }}"
+                                             data-phone="{{ d.phone_number or '' }}">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Statut</label>
+                                        <select name="status" class="px-2 py-1 border rounded w-full">
+                                            {% for st in ['available','busy','offline'] %}
+                                            <option value="{{ st }}" {% if d.status == st %}selected{% endif %}>{{ status_fr(st, 'deliverer') }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <label class="inline-flex items-center space-x-1">
+                                        <input type="checkbox" name="is_active" value="1" {% if d.is_active %}checked{% endif %}>
+                                        <span>Actif</span>
+                                    </label>
+                                    <div class="md:col-span-2 flex justify-end">
+                                        <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Enregistrer</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-3 text-sm text-center text-gray-500">Aucun livreur enregistré.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.querySelectorAll('.toggle-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = document.getElementById(btn.dataset.target);
+            if (target) {
+                target.classList.toggle('hidden');
+                // Réinitialiser les phone-inputs dans le formulaire d'édition
+                if (!target.classList.contains('hidden') && typeof initPhoneInputs === 'function') {
+                    initPhoneInputs();
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin {{ settings.platform_name if settings else 'Tekanayo App' }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body class="{% if login_mode %}min-h-screen flex flex-col bg-gradient-to-br from-emerald-700 via-teal-700 to-slate-900 text-slate-100{% else %}min-h-screen flex flex-col bg-slate-100 text-slate-900{% endif %}">
+    {% if login_mode %}
+      <style>
+        .admin-login-gradient { background: linear-gradient(135deg, #166534 0%, #0f766e 50%, #0f172a 100%); }
+        .admin-login-card { background: rgba(255,255,255,.12); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.25); }
+      </style>
+      <main class="flex-1 grid place-items-center p-4">
+        <div class="w-full max-w-md">
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="space-y-2 mb-4">
+              {% for c,m in messages %}
+              <div class="rounded-xl border px-4 py-3 {% if c=='error' %}bg-red-950 border-red-700{% elif c=='warning' %}bg-amber-950 border-amber-700{% else %}bg-emerald-950 border-emerald-700{% endif %}">{{ m }}</div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          {% endwith %}
+          <article class="admin-login-card rounded-3xl shadow-2xl p-8 text-white">
+            <div class="text-center mb-8">
+              <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
+                {% if settings and settings.admin_logo_url %}
+                <img src="{{ settings.admin_logo_url }}" alt="Logo admin" class="w-full h-full object-cover">
+                {% else %}
+                <i class="fas fa-shield-halved text-emerald-600 text-3xl"></i>
+                {% endif %}
+              </div>
+              <h1 class="text-3xl font-bold mb-1">Espace Admin</h1>
+              <p class="opacity-90 text-sm">Connectez-vous pour gérer la plateforme</p>
+            </div>
+            <form action="{{ url_for('admin_login_page') }}" method="POST" class="space-y-5">
+              <div>
+                <label class="block text-sm mb-2">Email Administrateur</label>
+                <div class="relative">
+                  <input type="email" name="email" required class="w-full rounded-xl px-4 py-3 pl-11 bg-white/10 border border-white/30 placeholder-white/70" placeholder="Email">
+                  <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-white/70"></i>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm mb-2">Mot de passe</label>
+                <div class="relative">
+                  <input id="admin_login_password" type="password" name="password" required class="w-full rounded-xl px-4 py-3 pl-11 pr-10 bg-white/10 border border-white/30 placeholder-white/70" placeholder="Mot de passe">
+                  <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-white/70"></i>
+                  <button type="button" id="toggleAdminLoginPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/80"><i class="fas fa-eye"></i></button>
+                </div>
+              </div>
+              <button class="w-full rounded-xl bg-white text-emerald-700 font-bold py-3">Se connecter</button>
+            </form>
+            <div class="mt-4 text-sm flex justify-between">
+              <a href="{{ url_for('admin_reset_request') }}" class="text-cyan-200">Mot de passe oublié ?</a>
+              <a href="{{ url_for('tekanayo_portal') }}" class="text-emerald-200">Retour portail</a>
+            </div>
+          </article>
+        </div>
+      </main>
+    {% else %}
+  {% set active_tab = active_tab or 'sellers' %}
+  <main class="flex-1">
+  <div class="max-w-7xl mx-auto p-4 md:p-6">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="space-y-2 mb-4">
+        {% for c,m in messages %}
+        <div class="rounded-xl border px-4 py-3 {% if c=='error' %}bg-red-50 border-red-200 text-red-700{% elif c=='warning' %}bg-amber-50 border-amber-200 text-amber-700{% else %}bg-emerald-50 border-emerald-200 text-emerald-700{% endif %}">{{ m }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+      <header class="rounded-3xl bg-gradient-to-r from-blue-700 to-cyan-600 text-white p-6 md:p-8">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-xs uppercase tracking-wide text-cyan-100">Interface 2</p>
+            <h1 class="text-3xl font-black">Admin Tekanayo App</h1>
+          </div>
+          <div class="flex gap-2">
+            <form action="{{ url_for('set_currency') }}" method="POST" class="flex gap-2">
+              <select name="currency" class="rounded-lg px-3 py-2 text-slate-900">
+                <option value="USD" {% if selected_currency=='USD' %}selected{% endif %}>USD</option>
+                <option value="CDF" {% if selected_currency=='CDF' %}selected{% endif %}>CDF</option>
+              </select>
+              <button class="rounded-lg bg-white text-slate-900 px-3 py-2">Devise</button>
+            </form>
+            <a href="{{ url_for('tekanayo_admin_logout') }}" class="px-4 py-2 rounded-xl bg-slate-900">Déconnexion</a>
+          </div>
+        </div>
+      </header>
+
+      <nav class="mt-4 flex flex-wrap gap-2">
+        <a href="{{ url_for('tekanayo_admin_sellers') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'sellers' else 'bg-white border' }}">Vendeurs</a>
+        <a href="{{ url_for('tekanayo_admin_subscriptions') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'subscriptions' else 'bg-white border' }}">Abonnements</a>
+        <a href="{{ url_for('tekanayo_admin_admins') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'admins' else 'bg-white border' }}">Admins</a>
+        <a href="{{ url_for('tekanayo_admin_admin_views') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'admin_views' else 'bg-white border' }}">Admin Views</a>
+        <a href="{{ url_for('tekanayo_admin_announcements') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'announcements' else 'bg-white border' }}">Annonces</a>
+        <a href="{{ url_for('tekanayo_admin_settings') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'settings' else 'bg-white border' }}">Paramètres</a>
+        <a href="{{ url_for('tekanayo_admin_profile') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'profile' else 'bg-white border' }}">Profil</a>
+        <a href="{{ url_for('tekanayo_admin_access_requests') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'access_requests' else 'bg-white border' }}">Access Requests</a>
+        <a href="{{ url_for('tekanayo_admin_tasks') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'tasks' else 'bg-white border' }}">Tasks</a>
+        <a href="{{ url_for('tekanayo_admin_about') }}" class="px-4 py-2 rounded-xl {{ 'bg-slate-900 text-white' if active_tab == 'about' else 'bg-white border' }}">A propos</a>
+      </nav>
+
+      <section class="panel mt-4 {% if active_tab != 'sellers' %}hidden{% endif %}" data-panel="sellers"><div class="rounded-2xl bg-white border p-5">
+        <h2 class="text-xl font-bold">Gestion vendeurs</h2>
+        <div class="overflow-x-auto mt-3"><table class="min-w-full text-sm">
+          <thead><tr class="text-left text-slate-500"><th class="py-2">Boutique</th><th>Email</th><th>Statut</th><th>Abonnement</th><th>Boutique URL</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for s in sellers %}
+            <tr class="border-t">
+              <td class="py-2"><a class="text-blue-700" href="{{ url_for('seller_space', slug=s.slug) }}">{{ s.name }}</a></td>
+              <td>{{ s.owner_email }}</td><td>{{ 'Actif' if s.is_active else 'Suspendu' }}</td><td>{{ s.subscription_status }}</td>
+              <td><a class="text-indigo-600" href="{{ url_for('seller_shop_by_id', shop_id=s.id) }}">/boutique{{ s.id }}</a></td>
+              <td><form action="{{ url_for('admin_toggle_seller', shop_id=s.id) }}" method="POST"><button class="px-3 py-1 rounded-lg border text-xs">Basculer</button></form></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      </div></section>
+
+      <section class="panel mt-4 {% if active_tab != 'subscriptions' %}hidden{% endif %}" data-panel="subscriptions"><div class="rounded-2xl bg-white border p-5">
+        <h2 class="text-xl font-bold">Suivi abonnements</h2>
+        <div class="grid md:grid-cols-3 gap-3 mt-3">
+          <div class="rounded-xl border p-4 bg-emerald-50">Actifs: {{ sellers|selectattr('subscription_status', 'equalto', 'active')|list|length }}</div>
+          <div class="rounded-xl border p-4 bg-amber-50">Essai: {{ sellers|selectattr('subscription_status', 'equalto', 'trial')|list|length }}</div>
+          <div class="rounded-xl border p-4 bg-rose-50">Suspendus: {{ sellers|selectattr('subscription_status', 'equalto', 'suspended')|list|length }}</div>
+        </div>
+      </div></section>
+
+      <section class="panel mt-4 {% if active_tab != 'admins' %}hidden{% endif %}" data-panel="admins"><div class="rounded-2xl bg-white border p-5">
+        <h2 class="text-xl font-bold">Ajouter admin plateforme</h2>
+        <form action="{{ url_for('admin_add_platform_admin') }}" method="POST" class="grid md:grid-cols-2 gap-3 mt-3">
+          <input required name="first_name" placeholder="Prénom" class="rounded-xl px-4 py-3 border"><input required name="last_name" placeholder="Nom" class="rounded-xl px-4 py-3 border">
+          <input required type="email" name="email" placeholder="Email" class="rounded-xl px-4 py-3 border"><input required type="password" name="password" placeholder="Mot de passe" class="rounded-xl px-4 py-3 border">
+          <label class="rounded-xl border p-3 bg-slate-50"><input type="checkbox" name="permissions" value="manage_sellers" checked> Gérer vendeurs</label>
+          <label class="rounded-xl border p-3 bg-slate-50"><input type="checkbox" name="permissions" value="manage_subscriptions" checked> Gérer abonnements</label>
+          <label class="rounded-xl border p-3 bg-slate-50"><input type="checkbox" name="permissions" value="manage_announcements" checked> Gérer annonces</label>
+          <label class="rounded-xl border p-3 bg-slate-50"><input type="checkbox" name="permissions" value="manage_admins"> Gérer admins</label>
+          <label class="rounded-xl border p-3 bg-slate-50 md:col-span-2"><input type="checkbox" name="permissions" value="manage_settings"> Gérer paramètres</label>
+          <button class="md:col-span-2 rounded-xl bg-blue-700 text-white py-3">Créer admin</button>
+        </form>
+      </div></section>
+
+      <section class="panel mt-4 {% if active_tab != 'announcements' %}hidden{% endif %}" data-panel="announcements"><div class="rounded-2xl bg-white border p-5">
+        <h2 class="text-xl font-bold">Publier annonce</h2>
+        <form action="{{ url_for('admin_add_announcement') }}" method="POST" class="grid md:grid-cols-2 gap-3 mt-3">
+          <input required name="title" placeholder="Titre" class="rounded-xl px-4 py-3 border md:col-span-2">
+          <textarea required name="content" placeholder="Contenu" class="rounded-xl px-4 py-3 border md:col-span-2"></textarea>
+          <input name="cta_label" placeholder="Bouton" class="rounded-xl px-4 py-3 border"><input name="cta_url" placeholder="URL" class="rounded-xl px-4 py-3 border">
+          <button class="md:col-span-2 rounded-xl bg-cyan-600 text-white py-3">Publier</button>
+        </form>
+      </div></section>
+
+      <section class="panel mt-4 {% if active_tab != 'settings' %}hidden{% endif %}" data-panel="settings"><div class="rounded-2xl bg-white border p-5">
+        <h2 class="text-xl font-bold">Paramètres plateforme</h2>
+        <form action="{{ url_for('admin_update_platform_settings') }}" method="POST" enctype="multipart/form-data" class="space-y-5 mt-3">
+          <input type="hidden" name="pricing_input_currency" id="platformPricingInputCurrency" value="{{ (selected_currency or settings.currency or 'USD') if settings else 'USD' }}">
+
+          <div class="rounded-xl border p-4 bg-slate-50">
+            <h3 class="font-semibold text-slate-800 mb-3"><i class="fa-solid fa-store mr-2 text-indigo-600"></i>Informations Générales</h3>
+            <div class="grid md:grid-cols-2 gap-3">
+              <input name="platform_name" value="{{ settings.platform_name|default('', true) if settings else '' }}" placeholder="Nom de la Plateforme" class="rounded-xl px-4 py-3 border">
+              <input name="contact_email" value="{{ settings.contact_email|default('', true) if settings else '' }}" placeholder="Email de Contact" class="rounded-xl px-4 py-3 border">
+              <input name="contact_phone" value="{{ settings.contact_phone|default('', true) if settings else '' }}" placeholder="Téléphone" class="rounded-xl px-4 py-3 border">
+              <div class="md:col-span-2">
+                <input name="office_address" id="platform_address_field" value="{{ settings.office_address|default('', true) if settings else '' }}" placeholder="Adresse" class="rounded-xl px-4 py-3 border w-full">
+                <div class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <button type="button"
+                          id="platform_geo_btn"
+                          class="px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 hover:bg-indigo-50 flex items-center gap-2 w-full sm:w-auto justify-center">
+                    <i class="fas fa-location-crosshairs"></i>
+                    <span>Me géolocaliser</span>
+                  </button>
+                  <p id="platform_geo_status" class="text-xs text-slate-500">Optionnel : détecter la position de la boutique.</p>
+                </div>
+                <div class="mt-2 hidden" id="platform_map_wrapper">
+                  <iframe id="platform_map" class="w-full h-40 rounded-lg border" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-xl border p-4 bg-slate-50">
+            <h3 class="font-semibold text-slate-800 mb-3"><i class="fa-solid fa-headset mr-2 text-blue-600"></i>Contacts & Réseaux</h3>
+            <div class="grid md:grid-cols-2 gap-3">
+              <div>
+                <input name="facebook_url" value="{{ settings.facebook_url|default('', true) if settings else '' }}" placeholder="https://www.facebook.com/votrepage" class="rounded-xl px-4 py-3 border w-full">
+                <p class="text-xs text-slate-500 mt-1">Affiché dans le footer public.</p>
+              </div>
+              <div>
+                <input name="whatsapp_number" value="{{ settings.whatsapp_number|default('', true) if settings else '' }}" placeholder="+243..." class="rounded-xl px-4 py-3 border w-full">
+                <p class="text-xs text-slate-500 mt-1">Utilisé pour le bouton WhatsApp flottant.</p>
+              </div>
+              <div>
+                <input name="whatsapp_group_url" value="{{ settings.whatsapp_group_url|default('', true) if settings else '' }}" placeholder="https://chat.whatsapp.com/..." class="rounded-xl px-4 py-3 border w-full">
+                <p class="text-xs text-slate-500 mt-1">Lien public vers le groupe communauté.</p>
+              </div>
+              <div>
+                <input name="whatsapp_url" value="{{ settings.whatsapp_url|default('', true) if settings else '' }}" placeholder="https://wa.me/243..." class="rounded-xl px-4 py-3 border w-full">
+                <p class="text-xs text-slate-500 mt-1">Lien WhatsApp prioritaire si rempli.</p>
+              </div>
+              <div>
+                <input name="telegram_username" value="{{ settings.telegram_username|default('', true) if settings else '' }}" placeholder="ex: tekanayoapp" class="rounded-xl px-4 py-3 border w-full">
+                <p class="text-xs text-slate-500 mt-1">Sans @. Sert pour le bouton Telegram.</p>
+              </div>
+              <div>
+                <input name="telegram_url" value="{{ settings.telegram_url|default('', true) if settings else '' }}" placeholder="https://t.me/tekanayoapp" class="rounded-xl px-4 py-3 border w-full">
+                <p class="text-xs text-slate-500 mt-1">Prioritaire sur le nom d'utilisateur s'il est renseigné.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-xl border p-4 bg-slate-50">
+            <h3 class="font-semibold text-slate-800 mb-3"><i class="fa-solid fa-money-bill mr-2 text-emerald-600"></i>Finances & Devise</h3>
+            <div class="grid md:grid-cols-3 gap-3">
+              <select name="currency"
+                      id="platformCurrencySelect"
+                      data-current-currency="{{ (settings.currency if settings and settings.currency else 'USD') }}"
+                      data-stored-currency="{{ (settings.currency if settings and settings.currency else 'USD') }}"
+                      class="rounded-xl px-4 py-3 border">
+                <option value="USD" {% if settings and settings.currency=='USD' %}selected{% elif not settings %}selected{% endif %}>USD</option>
+                <option value="CDF" {% if settings and settings.currency=='CDF' %}selected{% endif %}>CDF</option>
+              </select>
+              <input type="number" step="0.01" name="tax_rate" value="{{ settings.tax_rate|default(0, true) if settings else 0 }}" placeholder="Taxe (%)" class="rounded-xl px-4 py-3 border">
+              <div>
+                <input type="number" step="0.01" name="exchange_rate_usd_cdf" id="platformExchangeRateInput" value="{{ settings.exchange_rate_usd_cdf|default(2800.0, true) if settings else 2800.0 }}" placeholder="1 USD = ? CDF" class="rounded-xl px-4 py-3 border w-full">
+                <p class="text-xs text-slate-500 mt-1">Ex: 1 USD = 2500 CDF</p>
+              </div>
+              <div>
+                <input type="number" step="0.01" name="shipping_cost" id="platformShippingCostInput" value="{{ settings.shipping_cost|default(0, true) if settings else 0 }}" placeholder="Frais de livraison" class="rounded-xl px-4 py-3 border w-full">
+                <p class="text-xs text-slate-500 mt-1">Équivalent <span id="platformShipTargetLabel">{{ 'USD' if settings and settings.currency == 'CDF' else 'CDF' }}</span>: <span id="platformShipEquivalent">0.00</span></p>
+              </div>
+              <div>
+                <input type="number" step="0.01" name="shipping_cost_out" id="platformShippingCostOutInput" value="{{ settings.shipping_cost_out|default(0, true) if settings else 0 }}" placeholder="Livraison hors centre-ville" class="rounded-xl px-4 py-3 border w-full">
+                <p class="text-xs text-slate-500 mt-1">Équivalent <span id="platformShipOutTargetLabel">{{ 'USD' if settings and settings.currency == 'CDF' else 'CDF' }}</span>: <span id="platformShipOutEquivalent">0.00</span></p>
+              </div>
+              <select name="default_currency" class="rounded-xl px-4 py-3 border">
+                <option value="USD" {% if (settings and settings.default_currency=='USD') or (not settings) %}selected{% endif %}>Devise par défaut: USD</option>
+                <option value="CDF" {% if settings and settings.default_currency=='CDF' %}selected{% endif %}>Devise par défaut: CDF</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="rounded-xl border p-4 bg-slate-50">
+            <h3 class="font-semibold text-slate-800 mb-3"><i class="fa-solid fa-image mr-2 text-cyan-600"></i>Logos</h3>
+            <div class="grid md:grid-cols-3 gap-3">
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">Logo Portail</label>
+                <img id="preview_portal_logo" src="{{ settings.portal_logo_url if settings and settings.portal_logo_url else '' }}" class="h-16 w-16 rounded-full object-cover border {% if not (settings and settings.portal_logo_url) %}hidden{% endif %}" alt="logo portail">
+                <input type="file" name="portal_logo" id="portal_logo_input" accept="image/*" class="rounded-xl px-3 py-2 border w-full bg-white">
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">Logo Admin</label>
+                <img id="preview_admin_logo" src="{{ settings.admin_logo_url if settings and settings.admin_logo_url else '' }}" class="h-16 w-16 rounded-full object-cover border {% if not (settings and settings.admin_logo_url) %}hidden{% endif %}" alt="logo admin">
+                <input type="file" name="admin_logo" id="admin_logo_input" accept="image/*" class="rounded-xl px-3 py-2 border w-full bg-white">
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">Logo Espace Livreur Tekanayo</label>
+                <img id="preview_deliverer_logo" src="{{ settings.deliverer_logo_url if settings and settings.deliverer_logo_url else '' }}" class="h-16 w-16 rounded-full object-cover border {% if not (settings and settings.deliverer_logo_url) %}hidden{% endif %}" alt="logo livreur">
+                <input type="file" name="deliverer_logo" id="deliverer_logo_input" accept="image/*" class="rounded-xl px-3 py-2 border w-full bg-white">
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">Logo Entrée Universelle Vendeur</label>
+                <img id="preview_seller_login_logo" src="{{ settings.seller_login_logo_url if settings and settings.seller_login_logo_url else '' }}" class="h-16 w-16 rounded-full object-cover border {% if not (settings and settings.seller_login_logo_url) %}hidden{% endif %}" alt="logo login vendeur">
+                <input type="file" name="seller_login_logo" id="seller_login_logo_input" accept="image/*" class="rounded-xl px-3 py-2 border w-full bg-white">
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">Logo Entrée Universelle Livreur</label>
+                <img id="preview_deliverer_login_logo" src="{{ settings.deliverer_login_logo_url if settings and settings.deliverer_login_logo_url else '' }}" class="h-16 w-16 rounded-full object-cover border {% if not (settings and settings.deliverer_login_logo_url) %}hidden{% endif %}" alt="logo login livreur">
+                <input type="file" name="deliverer_login_logo" id="deliverer_login_logo_input" accept="image/*" class="rounded-xl px-3 py-2 border w-full bg-white">
+              </div>
+            </div>
+          </div>
+
+          <button class="w-full rounded-xl bg-slate-900 text-white py-3">Enregistrer</button>
+        </form>
+      </div></section>
+
+      <section class="panel mt-4 {% if active_tab != 'profile' %}hidden{% endif %}" data-panel="profile"><div class="rounded-2xl bg-white border p-5 space-y-5">
+        <h2 class="text-xl font-bold">Profil administrateur</h2>
+        <form action="{{ url_for('admin_profile_update') }}" method="POST" enctype="multipart/form-data" class="grid md:grid-cols-2 gap-3">
+          <input required name="first_name" value="{{ current_user.first_name }}" placeholder="Prénom" class="rounded-xl px-4 py-3 border">
+          <input required name="last_name" value="{{ current_user.last_name }}" placeholder="Nom" class="rounded-xl px-4 py-3 border">
+          <input required type="email" name="email" value="{{ current_user.email }}" placeholder="Email" class="rounded-xl px-4 py-3 border">
+          <input name="phone" value="{{ current_user.phone or '' }}" placeholder="Téléphone" class="rounded-xl px-4 py-3 border">
+          <div class="md:col-span-2 space-y-2">
+            <label class="text-sm font-medium text-slate-700">Photo de profil</label>
+            <img id="preview_admin_profile_picture" src="{{ current_user.profile_picture or '' }}" class="h-16 w-16 rounded-full object-cover border {% if not current_user.profile_picture %}hidden{% endif %}" alt="photo admin">
+            <input type="file" name="profile_picture_file" id="admin_profile_picture_input" accept="image/*" class="rounded-xl px-3 py-2 border w-full bg-white">
+          </div>
+          <textarea name="address" placeholder="Adresse" class="rounded-xl px-4 py-3 border md:col-span-2">{{ current_user.address or '' }}</textarea>
+          <button class="md:col-span-2 rounded-xl bg-slate-900 text-white py-3">Enregistrer profil</button>
+        </form>
+
+        <div class="rounded-xl border p-4 bg-slate-50">
+          <h3 class="font-semibold">Demande d'accès permissions</h3>
+          <form action="{{ url_for('admin_request_access') }}" method="POST" class="grid md:grid-cols-2 gap-3 mt-3">
+            <div class="md:col-span-2 grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {% for perm,label in admin_permission_labels.items() %}
+                {% if missing_permissions and perm in missing_permissions %}
+                <label class="rounded-lg border bg-white px-3 py-2 text-sm"><input type="checkbox" name="permissions_requested" value="{{ perm }}"> {{ label }}</label>
+                {% endif %}
+              {% endfor %}
+              {% if not missing_permissions %}
+              <p class="text-sm text-slate-500 md:col-span-2">Aucune permission manquante.</p>
+              {% endif %}
+            </div>
+            <textarea name="message" placeholder="Message au super admin" class="rounded-xl px-4 py-3 border md:col-span-2"></textarea>
+            <button class="md:col-span-2 rounded-xl bg-purple-700 text-white py-3" {% if not missing_permissions %}disabled{% endif %}>Envoyer demande</button>
+          </form>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead><tr class="text-left text-slate-500"><th class="py-2">Date</th><th>Permissions</th><th>Statut</th><th>Réponse</th></tr></thead>
+            <tbody>
+              {% for r in my_requests %}
+              <tr class="border-t"><td class="py-2">{{ r.created_at.strftime('%d/%m/%Y %H:%M') if r.created_at else '-' }}</td><td>{{ r.feature }}</td><td>{{ r.status }}</td><td>{{ r.response_message or '-' }}</td></tr>
+              {% else %}
+              <tr><td colspan="4" class="py-2 text-slate-500">Aucune demande.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div></section>
+
+      <section class="panel mt-4 {% if active_tab != 'access_requests' %}hidden{% endif %}" data-panel="access_requests"><div class="rounded-2xl bg-white border p-5">
+        <h2 class="text-xl font-bold">Demandes d'accès (super admin)</h2>
+        {% if current_user.role != 'super_admin' %}
+        <p class="text-slate-500 mt-2">Seul le super admin peut traiter les demandes.</p>
+        {% else %}
+        <div class="overflow-x-auto mt-3">
+          <table class="min-w-full text-sm">
+            <thead><tr class="text-left text-slate-500"><th class="py-2">Admin</th><th>Permissions</th><th>Message</th><th>Statut</th><th>Action</th></tr></thead>
+            <tbody>
+              {% for r in access_requests %}
+              <tr class="border-t align-top">
+                <td class="py-2">{{ r.requester.first_name if r.requester else '-' }} {{ r.requester.last_name if r.requester else '' }}<div class="text-xs text-slate-500">{{ r.requester.email if r.requester else '-' }}</div></td>
+                <td>{{ r.feature }}</td><td>{{ r.message or '-' }}</td><td>{{ r.status }}</td>
+                <td>
+                  {% if r.status == 'pending' %}
+                  <form action="{{ url_for('admin_process_access_request', request_id=r.id) }}" method="POST" class="space-y-2">
+                    <textarea name="response_message" rows="2" placeholder="Réponse" class="rounded-lg border px-2 py-1 w-52"></textarea>
+                    <div class="flex gap-2">
+                      <button name="action" value="approve" class="px-2 py-1 rounded bg-emerald-600 text-white text-xs">Approuver</button>
+                      <button name="action" value="reject" class="px-2 py-1 rounded bg-rose-600 text-white text-xs">Rejeter</button>
+                    </div>
+                  </form>
+                  {% else %}
+                  <p class="text-xs text-slate-500">Traité</p>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="py-2 text-slate-500">Aucune demande.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div></section>
+
+      <section class="panel mt-4 {% if active_tab != 'admin_views' %}hidden{% endif %}" data-panel="admin_views"><div class="rounded-2xl bg-white border p-5 space-y-4">
+        <h2 class="text-xl font-bold">Admin Views</h2>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead><tr class="text-left text-slate-500"><th class="py-2">Admin</th><th>Email</th><th>Rôle</th><th>Permissions</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for a in admins %}
+              <tr class="border-t">
+                <td class="py-2">{{ a.first_name }} {{ a.last_name }}</td>
+                <td>{{ a.email }}</td>
+                <td>{{ a.role }}</td>
+                <td>{{ a.permissions or '-' }}</td>
+                <td><a href="{{ url_for('tekanayo_admin_admin_views', view_admin=a.id) }}" class="text-indigo-700">Voir détails</a></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if selected_admin %}
+        <div class="rounded-xl border p-4 bg-slate-50">
+          <h3 class="font-bold">Détails: {{ selected_admin.first_name }} {{ selected_admin.last_name }}</h3>
+          <p class="text-sm text-slate-600 mt-1">{{ selected_admin.email }} | {{ selected_admin.role }}</p>
+          <div class="grid md:grid-cols-2 gap-3 mt-3">
+            <div class="rounded-lg bg-white border p-3"><p class="text-xs text-slate-500">Demandes créées</p><p class="text-xl font-bold">{{ selected_admin_created_requests|length }}</p></div>
+            <div class="rounded-lg bg-white border p-3"><p class="text-xs text-slate-500">Demandes traitées</p><p class="text-xl font-bold">{{ selected_admin_processed_requests|length }}</p></div>
+          </div>
+        </div>
+        {% endif %}
+      </div></section>
+
+      <section class="panel mt-4 {% if active_tab != 'tasks' %}hidden{% endif %}" data-panel="tasks"><div class="rounded-2xl bg-white border p-5">
+        <h2 class="text-xl font-bold">Tâches & Activités</h2>
+        <div class="overflow-x-auto mt-3">
+          <table class="min-w-full text-sm">
+            <thead><tr class="text-left text-slate-500"><th class="py-2">Action</th><th>Utilisateur</th><th>Téléphone</th><th>Détails</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for log in logs %}
+              <tr class="border-t">
+                <td class="py-2">{{ log.action }}</td>
+                <td>{{ log.actor_name or '-' }}<div class="text-xs text-slate-500">{{ log.actor_email or '-' }}</div></td>
+                <td>{{ log.actor_phone or '-' }}</td>
+                <td>{{ log.extra or '-' }}</td>
+                <td>{{ log.created_at.strftime('%d/%m/%Y %H:%M') if log.created_at else '-' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="py-2 text-slate-500">Aucune activité.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div></section>
+
+      <section class="panel mt-4 {% if active_tab != 'about' %}hidden{% endif %}" data-panel="about"><div class="rounded-2xl bg-white border p-5">
+        <h2 class="text-xl font-bold">A propos</h2>
+        <p class="text-slate-600 mt-2">Cette interface permet au propriétaire Tekanayo de piloter vendeurs, abonnements, logos, paramètres globaux et communications.</p>
+      </div></section>
+  </div>
+  </main>
+    {% endif %}
+
+  <footer class="text-center {% if login_mode %}text-white{% else %}text-slate-700{% endif %} opacity-60 text-xs px-4 mt-auto py-6">
+    <p>© Tekanayo App Administration, Propulsé par Esperdigi - Tout droit réservé.</p>
+  </footer>
+
+  <script>
+    const toggleAdminLogin = document.getElementById('toggleAdminLoginPassword');
+    const adminPwd = document.getElementById('admin_login_password');
+    if (toggleAdminLogin && adminPwd) {
+      toggleAdminLogin.addEventListener('click', function() {
+        if (adminPwd.type === 'password') {
+          adminPwd.type = 'text';
+          toggleAdminLogin.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        } else {
+          adminPwd.type = 'password';
+          toggleAdminLogin.innerHTML = '<i class="fas fa-eye"></i>';
+        }
+      });
+    }
+
+    const platformCurrencySelect = document.getElementById('platformCurrencySelect');
+    const platformExchangeRateInput = document.getElementById('platformExchangeRateInput');
+    const platformShippingCostInput = document.getElementById('platformShippingCostInput');
+    const platformShippingCostOutInput = document.getElementById('platformShippingCostOutInput');
+    const platformShipTargetLabel = document.getElementById('platformShipTargetLabel');
+    const platformShipOutTargetLabel = document.getElementById('platformShipOutTargetLabel');
+    const platformShipEquivalent = document.getElementById('platformShipEquivalent');
+    const platformShipOutEquivalent = document.getElementById('platformShipOutEquivalent');
+    const platformPricingInputCurrency = document.getElementById('platformPricingInputCurrency');
+
+    function pFormat(value) {
+      const n = parseFloat(value || 0);
+      return Number.isFinite(n) ? n.toFixed(2) : '0.00';
+    }
+    function pRate() {
+      const val = parseFloat(platformExchangeRateInput ? platformExchangeRateInput.value : '');
+      return Number.isFinite(val) && val > 0 ? val : 2800.0;
+    }
+    function pConvert(amount, from, to) {
+      const value = parseFloat(amount || 0);
+      if (!Number.isFinite(value)) return 0;
+      if (from === to) return value;
+      const rate = pRate();
+      if (from === 'USD' && to === 'CDF') return value * rate;
+      if (from === 'CDF' && to === 'USD') return value / rate;
+      return value;
+    }
+    function pTarget(cur) {
+      return cur === 'CDF' ? 'USD' : 'CDF';
+    }
+    function updatePlatformEquivalents(cur) {
+      if (!platformShippingCostInput || !platformShippingCostOutInput || !platformShipEquivalent || !platformShipOutEquivalent) return;
+      const target = pTarget(cur);
+      if (platformShipTargetLabel) platformShipTargetLabel.textContent = target;
+      if (platformShipOutTargetLabel) platformShipOutTargetLabel.textContent = target;
+      const ship = pConvert(platformShippingCostInput.value, cur, target);
+      const shipOut = pConvert(platformShippingCostOutInput.value, cur, target);
+      platformShipEquivalent.textContent = `${pFormat(ship)} ${target}`;
+      platformShipOutEquivalent.textContent = `${pFormat(shipOut)} ${target}`;
+    }
+    function handlePlatformCurrencyChange() {
+      if (!platformCurrencySelect || !platformShippingCostInput || !platformShippingCostOutInput) return;
+      const previous = platformCurrencySelect.dataset.currentCurrency || platformCurrencySelect.value || 'USD';
+      const next = platformCurrencySelect.value || 'USD';
+      if (previous !== next) {
+        platformShippingCostInput.value = pFormat(pConvert(platformShippingCostInput.value, previous, next));
+        platformShippingCostOutInput.value = pFormat(pConvert(platformShippingCostOutInput.value, previous, next));
+        platformCurrencySelect.dataset.currentCurrency = next;
+      }
+      if (platformPricingInputCurrency) platformPricingInputCurrency.value = next;
+      updatePlatformEquivalents(next);
+    }
+    if (platformCurrencySelect) {
+      const stored = platformCurrencySelect.dataset.storedCurrency || platformCurrencySelect.value || 'USD';
+      if (stored !== platformCurrencySelect.value) {
+        if (platformShippingCostInput) platformShippingCostInput.value = pFormat(pConvert(platformShippingCostInput.value, stored, platformCurrencySelect.value));
+        if (platformShippingCostOutInput) platformShippingCostOutInput.value = pFormat(pConvert(platformShippingCostOutInput.value, stored, platformCurrencySelect.value));
+      }
+      platformCurrencySelect.dataset.currentCurrency = platformCurrencySelect.value || 'USD';
+      if (platformPricingInputCurrency) platformPricingInputCurrency.value = platformCurrencySelect.value || 'USD';
+      platformCurrencySelect.addEventListener('change', handlePlatformCurrencyChange);
+      if (platformExchangeRateInput) platformExchangeRateInput.addEventListener('input', () => updatePlatformEquivalents(platformCurrencySelect.value || 'USD'));
+      if (platformShippingCostInput) platformShippingCostInput.addEventListener('input', () => updatePlatformEquivalents(platformCurrencySelect.value || 'USD'));
+      if (platformShippingCostOutInput) platformShippingCostOutInput.addEventListener('input', () => updatePlatformEquivalents(platformCurrencySelect.value || 'USD'));
+      updatePlatformEquivalents(platformCurrencySelect.value || 'USD');
+    }
+
+    const platformGeoBtn = document.getElementById('platform_geo_btn');
+    const platformAddressField = document.getElementById('platform_address_field');
+    const platformGeoStatus = document.getElementById('platform_geo_status');
+    const platformMap = document.getElementById('platform_map');
+    const platformMapWrapper = document.getElementById('platform_map_wrapper');
+
+    function updatePlatformMap(lat, lon, label) {
+      if (!platformMap || !platformMapWrapper) return;
+      platformMapWrapper.classList.remove('hidden');
+      const q = encodeURIComponent(label || `${lat},${lon}`);
+      platformMap.src = `https://www.google.com/maps?q=${q}&output=embed`;
+    }
+
+    if (platformGeoBtn && platformAddressField && platformGeoStatus) {
+      platformGeoBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          platformGeoStatus.textContent = "Géolocalisation non supportée par ce navigateur.";
+          return;
+        }
+        platformGeoStatus.textContent = "Localisation en cours...";
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude.toFixed(6);
+            const lon = pos.coords.longitude.toFixed(6);
+            const label = `Lat ${lat}, Lon ${lon}`;
+            platformAddressField.value = platformAddressField.value || label;
+            platformGeoStatus.textContent = `Position détectée (${lat}, ${lon}).`;
+            updatePlatformMap(lat, lon, label);
+          },
+          () => {
+            platformGeoStatus.textContent = "Impossible d'obtenir votre position. Vérifiez les permissions.";
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+    }
+
+    if (platformAddressField && platformAddressField.value && platformMap && platformMapWrapper) {
+      updatePlatformMap('', '', platformAddressField.value);
+    }
+
+    function bindImagePreview(inputId, imgId) {
+      const input = document.getElementById(inputId);
+      const img = document.getElementById(imgId);
+      if (!input || !img) return;
+      input.addEventListener('change', () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.src = e.target.result;
+          img.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    bindImagePreview('portal_logo_input', 'preview_portal_logo');
+    bindImagePreview('admin_logo_input', 'preview_admin_logo');
+    bindImagePreview('deliverer_logo_input', 'preview_deliverer_logo');
+    bindImagePreview('seller_login_logo_input', 'preview_seller_login_logo');
+    bindImagePreview('deliverer_login_logo_input', 'preview_deliverer_login_logo');
+    bindImagePreview('admin_profile_picture_input', 'preview_admin_profile_picture');
+  </script>
+</body>
+</html>

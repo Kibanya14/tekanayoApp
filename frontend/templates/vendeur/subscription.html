@@ -1,0 +1,244 @@
+{% extends "vendeur/basee.html" %}
+
+{% block title %}Mon Abonnement - {{ shop.name }}{% endblock %}
+{% block header_title %}Gestion de l'Abonnement{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- État de l'abonnement -->
+    <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center space-x-2">
+            <i class="fas fa-crown text-purple-600"></i>
+            <span>État de votre abonnement</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Statut -->
+            <div class="rounded-lg border border-gray-200 p-4 bg-white">
+                <p class="text-sm font-medium text-gray-600 mb-2">Statut actuel</p>
+                {% set status_colors = {
+                    'trial': 'bg-green-100 text-green-800',
+                    'active': 'bg-blue-100 text-blue-800',
+                    'suspended': 'bg-yellow-100 text-yellow-800',
+                    'expired': 'bg-red-100 text-red-800',
+                    'cancelled': 'bg-gray-100 text-gray-800'
+                } %}
+                {% set status_labels = {
+                    'trial': '🎉 Période d\'essai gratuite',
+                    'active': '✅ Actif',
+                    'suspended': '⏸️ Suspendu',
+                    'expired': '❌ Expiré',
+                    'cancelled': '🚫 Annulé'
+                } %}
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold {{ status_colors.get(subscription.status, 'bg-gray-100 text-gray-800') }}">
+                    {{ status_labels.get(subscription.status, subscription.status|title) }}
+                </span>
+            </div>
+            
+            <!-- Jours restants -->
+            <div class="rounded-lg border border-gray-200 p-4 bg-white">
+                <p class="text-sm font-medium text-gray-600 mb-2">Jours restants</p>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-calendar-day text-2xl text-purple-600"></i>
+                    <span class="text-2xl font-bold text-gray-800">{{ subscription.days_remaining() }} jours</span>
+                </div>
+            </div>
+            
+            <!-- Prix mensuel -->
+            <div class="rounded-lg border border-gray-200 p-4 bg-white">
+                <p class="text-sm font-medium text-gray-600 mb-2">Abonnement mensuel</p>
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-dollar-sign text-2xl text-green-600"></i>
+                    <span class="text-2xl font-bold text-gray-800">{{ subscription.monthly_price }} USD</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dates importantes -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if subscription.status == 'trial' %}
+            <div class="rounded-lg bg-green-50 border border-green-200 p-4">
+                <p class="text-sm font-medium text-green-800 mb-1">
+                    <i class="fas fa-gift mr-1"></i> Période d'essai gratuite
+                </p>
+                <p class="text-xs text-green-700">
+                    Début : {{ subscription.trial_start_date.strftime('%d/%m/%Y') if subscription.trial_start_date else 'N/A' }}
+                </p>
+                <p class="text-xs text-green-700">
+                    Fin : {{ subscription.trial_end_date.strftime('%d/%m/%Y') if subscription.trial_end_date else 'N/A' }}
+                </p>
+            </div>
+            {% endif %}
+            
+            {% if subscription.subscription_start_date %}
+            <div class="rounded-lg bg-blue-50 border border-blue-200 p-4">
+                <p class="text-sm font-medium text-blue-800 mb-1">
+                    <i class="fas fa-calendar-check mr-1"></i> Abonnement en cours
+                </p>
+                <p class="text-xs text-blue-700">
+                    Début : {{ subscription.subscription_start_date.strftime('%d/%m/%Y') }}
+                </p>
+                {% if subscription.subscription_end_date %}
+                <p class="text-xs text-blue-700">
+                    Fin : {{ subscription.subscription_end_date.strftime('%d/%m/%Y') }}
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Boutons d'action -->
+        <div class="mt-6 flex flex-wrap gap-3">
+            {% if subscription.is_expired() or subscription.status == 'suspended' %}
+            <a href="{{ url_for('seller_payment_page', slug=shop.slug) }}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
+                <i class="fas fa-credit-card"></i>
+                <span>Renouveler l'abonnement (5$)</span>
+            </a>
+            {% elif subscription.days_remaining() <= 7 %}
+            <a href="{{ url_for('seller_payment_page', slug=shop.slug) }}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition font-semibold">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Renouveler maintenant</span>
+            </a>
+            {% else %}
+            <a href="{{ url_for('seller_payment_page', slug=shop.slug) }}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold">
+                <i class="fas fa-credit-card"></i>
+                <span>Renouveler l'abonnement</span>
+            </a>
+            {% endif %}
+            
+            <a href="{{ url_for('seller_payment_history', slug=shop.slug) }}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
+                <i class="fas fa-history"></i>
+                <span>Historique des paiements</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Informations sur l'abonnement -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Avantages -->
+        <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center space-x-2">
+                <i class="fas fa-star text-yellow-500"></i>
+                <span>Avantages de l'abonnement</span>
+            </h4>
+            <ul class="space-y-2 text-sm text-gray-700">
+                <li class="flex items-start gap-2">
+                    <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
+                    <span>Boutique en ligne complète avec toutes les fonctionnalités</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
+                    <span>Gestion des produits, commandes et clients</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
+                    <span>Interface de gestion pour admins et livreurs</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
+                    <span>Statistiques et rapports de ventes</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
+                    <span>Support technique prioritaire</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
+                    <span>Mises à jour régulières de la plateforme</span>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Informations de paiement -->
+        <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center space-x-2">
+                <i class="fas fa-info-circle text-blue-600"></i>
+                <span>Informations de paiement</span>
+            </h4>
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span class="text-gray-600">Prix mensuel</span>
+                    <span class="font-semibold text-gray-800">{{ subscription.monthly_price }} USD</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span class="text-gray-600">Total payé</span>
+                    <span class="font-semibold text-green-600">{{ subscription.total_paid }} USD</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span class="text-gray-600">Dernier paiement</span>
+                    <span class="font-semibold text-gray-800">
+                        {{ subscription.last_payment_date.strftime('%d/%m/%Y') if subscription.last_payment_date else 'Aucun' }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center py-2">
+                    <span class="text-gray-600">Méthode de paiement</span>
+                    <span class="font-semibold text-gray-800">
+                        {% if subscription.payment_method %}
+                            {{ subscription.payment_method|title }}
+                        {% else %}
+                            Non défini
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            {% if subscription.pending_payment %}
+            <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p class="text-sm text-yellow-800">
+                    <i class="fas fa-clock mr-1"></i>
+                    <strong>Paiement en attente de vérification</strong>
+                </p>
+                <p class="text-xs text-yellow-700 mt-1">
+                    Votre paiement hors plateforme est en cours de vérification par notre équipe. Votre abonnement sera activé sous 24-48h.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Alertes et notifications -->
+    {% if subscription.is_expired() %}
+    <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-exclamation-circle text-red-600 text-2xl"></i>
+            <div>
+                <h4 class="font-semibold text-red-800 mb-2">⚠️ Abonnement expiré</h4>
+                <p class="text-sm text-red-700 mb-3">
+                    Votre période d'essai gratuite est terminée. Pour continuer à utiliser votre espace vendeur, veuillez renouveler votre abonnement.
+                </p>
+                <p class="text-xs text-red-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Vos admins et livreurs ne peuvent plus accéder à leurs espaces. Vos clients peuvent toujours commander mais seront invités à contacter leur vendeur.
+                </p>
+                <a href="{{ url_for('seller_payment_page', slug=shop.slug) }}" 
+                   class="inline-block mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-semibold">
+                    <i class="fas fa-credit-card mr-1"></i>
+                    Renouveler maintenant (5$)
+                </a>
+            </div>
+        </div>
+    </div>
+    {% elif subscription.days_remaining() <= 7 %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
+            <div>
+                <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Expiration prochaine</h4>
+                <p class="text-sm text-yellow-700 mb-3">
+                    Votre abonnement expire dans <strong>{{ subscription.days_remaining() }} jours</strong>. Pensez à le renouveler pour éviter toute interruption de service.
+                </p>
+                <a href="{{ url_for('seller_payment_page', slug=shop.slug) }}" 
+                   class="inline-block mt-3 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm font-semibold">
+                    <i class="fas fa-credit-card mr-1"></i>
+                    Renouveler maintenant
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

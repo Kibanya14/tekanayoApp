@@ -1,0 +1,194 @@
+{% extends "admin/basee.html" %}
+{% block title %}Livreurs Tekanayo{% endblock %}
+{% block header_title %}Gestion des Livreurs Tekanayo{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/phone-input.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+  <!-- Formulaire d'ajout -->
+  <section class="xl:col-span-1 card-surface rounded-2xl p-5">
+    <h2 class="text-xl font-bold mb-3">
+      <i class="fas fa-truck text-cyan-600 mr-2"></i>Nouveau livreur
+    </h2>
+    <form action="{{ url_for('admin_add_platform_deliverer') }}" method="POST" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Prénom</label>
+          <input required name="first_name" placeholder="Prénom" 
+                 class="w-full rounded-xl px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Nom</label>
+          <input required name="last_name" placeholder="Nom" 
+                 class="w-full rounded-xl px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition">
+        </div>
+      </div>
+      
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">
+          <i class="fas fa-envelope text-cyan-600 mr-1"></i>Email
+        </label>
+        <input required type="email" name="email" placeholder="email@exemple.com" 
+               class="w-full rounded-xl px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition">
+      </div>
+      
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">
+          <i class="fas fa-lock text-cyan-600 mr-1"></i>Mot de passe
+        </label>
+        <input required type="password" name="password" placeholder="••••••••" minlength="8"
+               class="password-toggle w-full rounded-xl px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition pr-10">
+      </div>
+      
+      <!-- Phone Input Component -->
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-2">
+          <i class="fas fa-phone text-cyan-600 mr-1"></i>Téléphone
+        </label>
+        <div class="phone-input-wrapper" 
+             data-country="CD" 
+             data-phone="">
+        </div>
+        <p class="text-xs text-gray-500 mt-1">
+          <i class="fas fa-circle-info mr-1"></i>Entrez exactement 9 chiffres (sans l'indicatif)
+        </p>
+      </div>
+      
+      <button type="submit" 
+              class="w-full rounded-xl bg-cyan-700 text-white py-3 font-semibold hover:bg-cyan-600 transition flex items-center justify-center">
+        <i class="fas fa-user-plus mr-2"></i>Créer le livreur
+      </button>
+    </form>
+  </section>
+  
+  <!-- Liste des livreurs -->
+  <section class="xl:col-span-2 card-surface rounded-2xl p-5">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold">
+        <i class="fas fa-motorcycle mr-2 text-cyan-600"></i>Livreurs actifs
+      </h2>
+      <input id="delivererSearch" type="text" placeholder="Rechercher..." 
+             class="rounded-xl px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition w-64">
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm" id="deliverersTable">
+        <thead>
+          <tr class="text-left text-gray-500 border-b border-gray-200">
+            <th class="py-3 px-3">Nom</th>
+            <th class="py-3 px-3">Email</th>
+            <th class="py-3 px-3">Téléphone</th>
+            <th class="py-3 px-3">Statut</th>
+            <th class="py-3 px-3">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for d in deliverers %}
+        <tr class="border-b border-gray-200 hover:bg-gray-50 transition">
+          <td class="py-3 px-3 font-medium text-gray-800">{{ d.first_name }} {{ d.last_name }}</td>
+          <td class="py-3 px-3 text-gray-600">{{ d.email }}</td>
+          <td class="py-3 px-3">
+            {% if d.country_code and d.phone_number %}
+              <span class="inline-flex items-center gap-1 text-gray-700">
+                <span class="text-lg">{{ get_country_flag(d.country_code) }}</span>
+                <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{{ get_country_dial_code(d.country_code) }} {{ d.phone_number }}</span>
+              </span>
+            {% else %}
+              <span class="text-gray-400">-</span>
+            {% endif %}
+          </td>
+          <td class="py-3 px-3">
+            {% if d.is_active %}
+              <span class="inline-flex items-center gap-1 text-green-700 bg-green-100 px-3 py-1 rounded-full text-xs font-semibold">
+                <i class="fas fa-check-circle"></i> Actif
+              </span>
+            {% else %}
+              <span class="inline-flex items-center gap-1 text-gray-700 bg-gray-100 px-3 py-1 rounded-full text-xs font-semibold">
+                <i class="fas fa-times-circle"></i> Inactif
+              </span>
+            {% endif %}
+          </td>
+          <td class="py-3 px-3">
+            <form method="POST" action="{{ url_for('admin_toggle_platform_deliverer', deliverer_id=d.id) }}" class="inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-medium hover:bg-gray-100 transition flex items-center gap-1">
+                <i class="fas fa-toggle-{{ 'on' if d.is_active else 'off' }} text-cyan-600"></i>
+                {{ 'Désactiver' if d.is_active else 'Activer' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="py-5 text-center text-gray-500">
+            <i class="fas fa-motorcycle text-4xl text-gray-300 mb-2"></i>
+            <p>Aucun livreur enregistré.</p>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/phone-input.js') }}"></script>
+<script>
+// Inject countries data from Python to JavaScript
+window.COUNTRIES_DATA = [
+    {% for code, name, dial_code in countries_with_dial_codes() %}
+    {% set flag = get_country_flag(code) %}
+    ['{{ code }}', '{{ flag }}', '{{ name }}', '{{ dial_code }}'],
+    {% endfor %}
+];
+
+// Initialize phone input after page load
+window.addEventListener('load', function() {
+    console.log('Page loaded, initializing phone input...');
+    console.log('Countries data loaded:', window.COUNTRIES_DATA ? window.COUNTRIES_DATA.length : 0, 'countries');
+    
+    const wrapper = document.querySelector('.phone-input-wrapper');
+    if (wrapper) {
+        console.log('Phone wrapper found:', wrapper);
+        
+        if (typeof PhoneInputComponent !== 'undefined') {
+            try {
+                new PhoneInputComponent(wrapper, {
+                    defaultCountry: 'CD',
+                    requiredLength: 9,
+                    africanCountriesFirst: true
+                });
+                wrapper.dataset.initialized = 'true';
+                console.log('Phone component initialized successfully');
+            } catch (error) {
+                console.error('Error initializing phone component:', error);
+            }
+        } else {
+            console.error('PhoneInputComponent is NOT defined!');
+        }
+    } else {
+        console.error('Phone wrapper NOT found!');
+    }
+});
+
+// Recherche des livreurs
+const delivererSearch = document.getElementById('delivererSearch');
+if (delivererSearch) {
+  delivererSearch.addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#deliverersTable tbody tr').forEach((tr) => {
+      tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+}
+</script>
+{% endblock %}

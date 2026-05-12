@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Countries - Démonstration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .country-list { max-height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+        .country-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <h1>Flask Countries - Démonstration</h1>
+    <p>Équivalent de django-countries pour Flask</p>
+
+    <h2>Pays africains (priorisés)</h2>
+    <div class="country-list">
+        {% for code, name in african_countries_for_select() %}
+        <div class="country-item">
+            <span>{{ name }}</span>
+            <span>{{ code }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <h2>Tous les pays</h2>
+    <div class="country-list">
+        {% for code, name in countries_for_select() %}
+        <div class="country-item">
+            <span>{{ name }}</span>
+            <span>{{ code }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

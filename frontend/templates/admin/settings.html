@@ -1,0 +1,239 @@
+{% extends "admin/basee.html" %}
+{% block title %}Paramètres Tekanayo{% endblock %}
+{% block header_title %}Paramètres de la Plateforme Tekanayo{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/phone-input.css') }}">
+{% endblock %}
+
+{% block content %}
+<form action="{{ url_for('admin_update_platform_settings') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+      <i class="fas fa-building text-indigo-600"></i><span>Informations Générales</span>
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Nom de la plateforme</label>
+        <input name="platform_name" value="{{ settings.platform_name or '' }}" placeholder="Tekanayo App" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Email de contact</label>
+        <input name="contact_email" value="{{ settings.contact_email or '' }}" placeholder="contact@tekanayo.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-phone text-indigo-600 mr-1"></i>Téléphone
+        </label>
+        <div class="phone-input-wrapper" 
+             data-country="{{ settings.contact_country_code or 'CD' }}" 
+             data-phone="{{ settings.contact_phone_number or '' }}">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Adresse</label>
+        <input name="office_address" value="{{ settings.office_address or '' }}" placeholder="Adresse du siège" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" id="office_address_field">
+        <input type="hidden" id="office_address_lat">
+        <input type="hidden" id="office_address_lon">
+        <input type="hidden" id="office_address_label">
+        <div class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <button type="button"
+                    class="px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 hover:bg-indigo-50 flex items-center gap-2 w-full sm:w-auto justify-center"
+                    data-geo-btn
+                    data-geo-target="office_address_field"
+                    data-geo-lat="office_address_lat"
+                    data-geo-lon="office_address_lon"
+                    data-geo-label="office_address_label"
+                    data-geo-map="office_address_map"
+                    data-geo-status="office_address_status">
+                <i class="fas fa-location-crosshairs"></i>
+                <span>Me géolocaliser</span>
+            </button>
+            <p id="office_address_status" class="text-xs text-gray-500">Optionnel : détecter la position du siège.</p>
+        </div>
+        <div class="mt-2 hidden" id="office_address_map_wrapper">
+            <iframe id="office_address_map" class="w-full h-40 rounded-lg border" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+      <i class="fas fa-headset text-cyan-600"></i><span>Contacts & Réseaux</span>
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Lien Facebook</label>
+        <input name="facebook_url" value="{{ settings.facebook_url or '' }}" placeholder="https://facebook.com/..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Numéro WhatsApp</label>
+        <input name="whatsapp_number" value="{{ settings.whatsapp_number or '' }}" placeholder="+243..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Lien groupe WhatsApp</label>
+        <input name="whatsapp_group_url" value="{{ settings.whatsapp_group_url or '' }}" placeholder="https://chat.whatsapp.com/..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Lien WhatsApp direct (optionnel)</label>
+        <input name="whatsapp_url" value="{{ settings.whatsapp_url or '' }}" placeholder="https://wa.me/..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Nom utilisateur Telegram</label>
+        <input name="telegram_username" value="{{ settings.telegram_username or '' }}" placeholder="ex: tekanayo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Lien Telegram</label>
+        <input name="telegram_url" value="{{ settings.telegram_url or '' }}" placeholder="https://t.me/..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+    </div>
+  </div>
+
+  <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+      <i class="fas fa-coins text-emerald-600"></i><span>Finances & Devise</span>
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Devise principale</label>
+        <input name="currency" value="{{ settings.currency or 'USD' }}" placeholder="USD/CDF" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Devise par défaut</label>
+        <input name="default_currency" value="{{ settings.default_currency or 'USD' }}" placeholder="USD/CDF" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Taxe (%)</label>
+        <input type="number" step="0.01" name="tax_rate" value="{{ settings.tax_rate or 0 }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Taux USD/CDF</label>
+        <input type="number" step="0.01" name="exchange_rate_usd_cdf" value="{{ settings.exchange_rate_usd_cdf or 2800 }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Frais livraison (centre)</label>
+        <input type="number" step="0.01" name="shipping_cost" value="{{ settings.shipping_cost or 0 }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Frais livraison (hors zone)</label>
+        <input type="number" step="0.01" name="shipping_cost_out" value="{{ settings.shipping_cost_out or 0 }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+      </div>
+    </div>
+  </div>
+
+  <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+      <i class="fas fa-image text-blue-600"></i><span>Logos & Prévisualisation</span>
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div class="rounded-xl border border-gray-200 p-4 bg-white">
+        <p class="font-medium text-sm mb-3">Logo Portail</p>
+        <img id="preview_portal_logo" src="{{ media_url(settings.portal_logo_url) }}" class="h-20 w-20 rounded-full object-cover border mb-3" alt="Logo du portail Tekanayo">
+        <input type="file" name="portal_logo" accept="image/*" class="w-full text-sm" data-preview-target="preview_portal_logo">
+      </div>
+      <div class="rounded-xl border border-gray-200 p-4 bg-white">
+        <p class="font-medium text-sm mb-3">Logo Interface Admin</p>
+        <img id="preview_admin_logo" src="{{ media_url(settings.admin_logo_url) }}" class="h-20 w-20 rounded-full object-cover border mb-3" alt="Logo interface administrateur Tekanayo">
+        <input type="file" name="admin_logo" accept="image/*" class="w-full text-sm" data-preview-target="preview_admin_logo">
+      </div>
+      <div class="rounded-xl border border-gray-200 p-4 bg-white">
+        <p class="font-medium text-sm mb-3">Logo Espace Livreur</p>
+        <img id="preview_deliverer_logo" src="{{ media_url(settings.deliverer_logo_url) }}" class="h-20 w-20 rounded-full object-cover border mb-3" alt="Logo interface livreur Tekanayo">
+        <input type="file" name="deliverer_logo" accept="image/*" class="w-full text-sm" data-preview-target="preview_deliverer_logo">
+      </div>
+      <div class="rounded-xl border border-gray-200 p-4 bg-white">
+        <p class="font-medium text-sm mb-3">Logo Entrée Vendeur</p>
+        <img id="preview_seller_login_logo" src="{{ media_url(settings.seller_login_logo_url) }}" class="h-20 w-20 rounded-full object-cover border mb-3" alt="Logo page de connexion vendeur Tekanayo">
+        <input type="file" name="seller_login_logo" accept="image/*" class="w-full text-sm" data-preview-target="preview_seller_login_logo">
+      </div>
+      <div class="rounded-xl border border-gray-200 p-4 bg-white">
+        <p class="font-medium text-sm mb-3">Logo Entrée Livreur</p>
+        <img id="preview_deliverer_login_logo" src="{{ media_url(settings.deliverer_login_logo_url) }}" class="h-20 w-20 rounded-full object-cover border mb-3" alt="Logo page de connexion livreur Tekanayo">
+        <input type="file" name="deliverer_login_logo" accept="image/*" class="w-full text-sm" data-preview-target="preview_deliverer_login_logo">
+      </div>
+    </div>
+  </div>
+
+  <div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+      <i class="fas fa-file-lines text-purple-600"></i><span>Contenus des pages du portail</span>
+    </h3>
+    <p class="text-sm text-gray-500 mb-4">Gardez la structure des pages publiques, ajoutez ici les contenus du portail Tekanayo.</p>
+    <div class="space-y-5">
+      <div class="content-section">
+        <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-indigo-600 transition-colors" onclick="toggleContent('about')">À propos <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-about"></i></label>
+        <textarea name="portal_about_content" id="content-about" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 hidden">{{ settings.portal_about_content or '' }}</textarea>
+      </div>
+      <div class="content-section">
+        <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-indigo-600 transition-colors" onclick="toggleContent('legal')">Mentions légales <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-legal"></i></label>
+        <textarea name="portal_legal_content" id="content-legal" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 hidden">{{ settings.portal_legal_content or '' }}</textarea>
+      </div>
+      <div class="content-section">
+        <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-indigo-600 transition-colors" onclick="toggleContent('terms')">Conditions Générales <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-terms"></i></label>
+        <textarea name="portal_terms_content" id="content-terms" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 hidden">{{ settings.portal_terms_content or '' }}</textarea>
+      </div>
+      <div class="content-section">
+        <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-indigo-600 transition-colors" onclick="toggleContent('returns')">Retours & remboursements <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-returns"></i></label>
+        <textarea name="portal_returns_content" id="content-returns" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 hidden">{{ settings.portal_returns_content or '' }}</textarea>
+      </div>
+      <div class="content-section">
+        <label class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer hover:text-indigo-600 transition-colors" onclick="toggleContent('privacy')">Politique de confidentialité <i class="fas fa-chevron-down ml-2 transition-transform" id="icon-privacy"></i></label>
+        <textarea name="portal_privacy_content" id="content-privacy" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 hidden">{{ settings.portal_privacy_content or '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex justify-end">
+    <button class="rounded-xl bg-slate-900 text-white px-6 py-3 hover:bg-slate-800"><i class="fas fa-save mr-2"></i>Enregistrer les paramètres</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Inject countries data from Python to JavaScript
+window.COUNTRIES_DATA = [
+    {% for code, name, dial_code in countries_with_dial_codes() %}
+    {% set flag = get_country_flag(code) %}
+    ['{{ code }}', '{{ flag }}', '{{ name }}', '{{ dial_code }}'],
+    {% endfor %}
+];
+</script>
+<script src="{{ url_for('static', filename='js/phone-input.js') }}"></script>
+<script>
+if (window.COUNTRIES_DATA && window.COUNTRIES_DATA.length > 0) {
+    initPhoneInputs();
+}
+</script>
+<script>
+// Existing scripts
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input[type="file"][data-preview-target]').forEach((input) => {
+    input.addEventListener('change', () => {
+      const targetId = input.getAttribute('data-preview-target');
+      const img = document.getElementById(targetId);
+      const file = input.files && input.files[0];
+      if (!img || !file) return;
+      img.src = URL.createObjectURL(file);
+    });
+  });
+});
+
+function toggleContent(section) {
+  const content = document.getElementById('content-' + section);
+  const icon = document.getElementById('icon-' + section);
+  if (content.classList.contains('hidden')) {
+    content.classList.remove('hidden');
+    icon.classList.add('rotate-180');
+  } else {
+    content.classList.add('hidden');
+    icon.classList.remove('rotate-180');
+  }
+}
+</script>
+{% endblock %}

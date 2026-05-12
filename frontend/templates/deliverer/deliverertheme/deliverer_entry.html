@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Livreur - {{ deliverer_brand_name or 'Tekanayo' }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <style>
+    .gradient-bg { background: linear-gradient(135deg, #166534 0%, #0f766e 50%, #0f172a 100%); }
+    .glass-card { background: rgba(255,255,255,.12); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.25); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col gradient-bg text-slate-100">
+  <main class="flex-1 grid place-items-center p-4">
+  <div class="max-w-md w-full">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}<div class="space-y-2 mb-4">{% for c,m in messages %}<div class="rounded-xl border px-4 py-3 {% if c=='error' %}bg-red-50 border-red-200 text-red-700{% elif c=='warning' %}bg-amber-50 border-amber-200 text-amber-700{% else %}bg-emerald-50 border-emerald-200 text-emerald-700{% endif %}">{{ m }}</div>{% endfor %}</div>{% endif %}
+    {% endwith %}
+    <section class="glass-card rounded-3xl shadow-2xl p-8 text-white">
+      <div class="text-center mb-8">
+        <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
+          {% if selected_shop and selected_shop.deliverer_logo_url %}
+          <img src="{{ selected_shop.deliverer_logo_url }}" class="w-full h-full object-cover" alt="logo livreur boutique">
+          {% elif platform_settings and platform_settings.deliverer_login_logo_url %}
+          <img src="{{ platform_settings.deliverer_login_logo_url }}" class="w-full h-full object-cover" alt="logo login livreur">
+          {% elif platform_settings and platform_settings.deliverer_logo_url %}
+          <img src="{{ platform_settings.deliverer_logo_url }}" class="w-full h-full object-cover" alt="logo livreur Tekanayo">
+          {% else %}
+          <i class="fas fa-motorcycle text-emerald-600 text-3xl"></i>
+          {% endif %}
+        </div>
+        <h1 class="text-3xl font-bold mb-1">Espace Livreur</h1>
+        <p class="opacity-90 text-sm">Connectez-vous avec votre email et mot de passe</p>
+      </div>
+
+      <form action="{{ deliverer_login_action if deliverer_login_action is defined else url_for('deliverer_entrypoint') }}" method="POST" class="space-y-5">
+        {% if selected_shop %}
+        <input type="hidden" name="shop_slug" value="{{ selected_shop.slug }}">
+        {% endif %}
+        <div class="relative">
+          <input required type="email" name="email" placeholder="Email livreur" class="w-full rounded-xl px-4 py-3 pl-11 bg-white/10 border border-white/30 placeholder-white/70">
+          <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-white/70"></i>
+        </div>
+        <div class="relative">
+          <input id="deliverer_password" required type="password" name="password" placeholder="Mot de passe" class="w-full rounded-xl px-4 py-3 pl-11 pr-10 bg-white/10 border border-white/30 placeholder-white/70">
+          <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-white/70"></i>
+          <button type="button" id="toggleDelivererPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/80"><i class="fas fa-eye"></i></button>
+        </div>
+        <button class="w-full rounded-xl bg-white text-emerald-700 font-bold py-3">Accéder à mon espace</button>
+      </form>
+      <div class="mt-4 text-sm">
+        <a href="{{ url_for('deliverer_reset_request') }}" class="text-emerald-100">Mot de passe oublié ?</a>
+      </div>
+      {% if not selected_shop and platform_settings %}
+      <div class="mt-4 text-xs text-emerald-100/90 space-y-1">
+        {% if platform_settings.contact_email %}<p>Email: {{ platform_settings.contact_email }}</p>{% endif %}
+        {% if platform_settings.contact_phone %}<p>Téléphone: {{ platform_settings.contact_phone }}</p>{% endif %}
+        {% if platform_settings.office_address %}<p>Adresse: {{ platform_settings.office_address }}</p>{% endif %}
+      </div>
+      {% endif %}
+    </section>
+  </div>
+  </main>
+
+  <footer class="text-center text-white opacity-70 text-xs px-4 mt-auto py-6">
+    <p>© {{ current_year }} {{ deliverer_brand_name or 'Tekanayo' }} Livreur. Propulsé par Esperdigi. Tous droits réservés.</p>
+  </footer>
+
+  <script>
+    const toggleDelivererPwd = document.getElementById('toggleDelivererPassword');
+    const delivererPwd = document.getElementById('deliverer_password');
+    if (toggleDelivererPwd && delivererPwd) {
+      toggleDelivererPwd.addEventListener('click', function() {
+        if (delivererPwd.type === 'password') {
+          delivererPwd.type = 'text';
+          toggleDelivererPwd.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        } else {
+          delivererPwd.type = 'password';
+          toggleDelivererPwd.innerHTML = '<i class="fas fa-eye"></i>';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

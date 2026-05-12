@@ -1,0 +1,42 @@
+{% extends "admin/basee.html" %}
+{% block title %}Demandes d'accès{% endblock %}
+{% block header_title %}Traitement des Demandes d'Accès{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+  <section class="xl:col-span-1 card-surface rounded-2xl p-5">
+    <h2 class="text-xl font-bold mb-3"><i class="fas fa-paper-plane text-blue-600 mr-2"></i>Envoyer une demande</h2>
+    <form method="POST" action="{{ url_for('admin_request_access') }}" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <select name="feature" required class="rounded-xl px-4 py-3 border w-full">
+        <option value="">Permission demandée</option>
+        {% for p in missing_permissions %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+      </select>
+      <textarea name="message" class="rounded-xl px-4 py-3 border w-full" placeholder="Message (optionnel)"></textarea>
+      <button class="w-full rounded-xl bg-blue-700 text-white py-3">Envoyer</button>
+    </form>
+  </section>
+
+  <section class="xl:col-span-2 card-surface rounded-2xl p-5">
+    <h2 class="text-xl font-bold mb-4"><i class="fas fa-inbox text-purple-600 mr-2"></i>Demandes reçues</h2>
+    <div class="space-y-3">
+      {% for r in access_requests %}
+      <article class="rounded-xl border border-[var(--border)] p-4">
+        <p class="font-semibold">{{ r.requester.first_name if r.requester else 'Admin' }} {{ r.requester.last_name if r.requester else '' }} - {{ r.feature }}</p>
+        <p class="text-sm text-gray-500">{{ r.created_at.strftime('%d/%m/%Y %H:%M') if r.created_at else '-' }} | Statut: {{ r.status }}</p>
+        {% if r.message %}<p class="mt-2 text-gray-700">{{ r.message }}</p>{% endif %}
+        {% if r.status == 'pending' and (current_user.role == 'super_admin' or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_admins'))) %}
+        <form method="POST" action="{{ url_for('admin_process_access_request', request_id=r.id) }}" class="flex flex-col md:flex-row gap-2 mt-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input name="response_message" class="border rounded px-3 py-2 text-sm flex-1" placeholder="Réponse (optionnel)">
+          <button name="decision" value="approved" class="px-3 py-2 rounded bg-green-600 text-white text-sm">Approuver</button>
+          <button name="decision" value="rejected" class="px-3 py-2 rounded bg-red-600 text-white text-sm">Refuser</button>
+        </form>
+        {% endif %}
+      </article>
+      {% else %}
+      <p class="text-gray-500">Aucune demande d'accès.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

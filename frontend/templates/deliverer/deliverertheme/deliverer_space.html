@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ shop.name }} Livreur</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --brand: #0f766e; --brand-dark: #0d5c54; --ink: #0f172a; }
+    body {
+      font-family: "Sora", "Segoe UI", sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #d1fae5 0%, transparent 60%),
+                  radial-gradient(800px 400px at 100% 0%, #bbf7d0 0%, transparent 55%),
+                  #f3faf6;
+      color: var(--ink);
+    }
+    h1, h2, h3, .app-title { font-family: "Syne", "Sora", sans-serif; }
+    @media (max-width: 767px) {
+      body.mobile-nav-open { padding-bottom: 96px; }
+    }
+    .footer-fixed {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #fff;
+      border-top: 1px solid #e5e7eb;
+      z-index: 30;
+    }
+    @media (max-width: 767px) {
+      .footer-fixed { display: none; }
+    }
+    .app-bottom-nav {
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+      border-radius: 999px;
+      padding: 10px 14px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      max-width: calc(100% - 24px);
+      z-index: 70;
+      backdrop-filter: blur(10px);
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .app-bottom-nav::-webkit-scrollbar { height: 0; }
+    .app-bottom-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 14px;
+      transition: all .2s ease;
+      flex: 0 0 auto;
+    }
+    .app-bottom-item i { font-size: 16px; }
+    .app-bottom-item.active,
+    .app-bottom-item:hover {
+      background: #ecfdf3;
+      color: var(--brand-dark);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <nav class="bg-white shadow-lg sticky top-0 z-50 border-b">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center">
+          <a href="{{ url_for('deliverer_space', slug=shop.slug, section='dashboard') }}" class="flex items-center space-x-2">
+            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0">
+              {% if shop.deliverer_logo_url %}
+              <img src="{{ shop.deliverer_logo_url }}" alt="Logo livreur boutique" class="w-full h-full object-cover">
+              {% elif settings and settings.deliverer_logo_url %}
+              <img src="{{ settings.deliverer_logo_url }}" alt="Logo livreur" class="w-full h-full object-cover">
+              {% else %}
+              <span>TL</span>
+              {% endif %}
+            </div>
+            <div>
+              <span class="font-bold text-lg text-gray-800 app-title">{{ shop.name }} Livreur</span>
+              <p class="text-xs text-gray-500">Interface livreur</p>
+            </div>
+          </a>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-5">
+          <a href="{{ url_for('deliverer_space', slug=shop.slug, section='dashboard') }}" class="text-gray-600 hover:text-emerald-600 transition flex items-center gap-2 {% if active_section=='dashboard' %}text-emerald-600{% endif %}">
+            <i class="fas fa-tachometer-alt"></i><span class="font-medium">Tableau de bord</span>
+          </a>
+          <a href="{{ url_for('deliverer_space', slug=shop.slug, section='about') }}" class="text-gray-600 hover:text-emerald-600 transition flex items-center gap-2 {% if active_section=='about' %}text-emerald-600{% endif %}">
+            <i class="fas fa-circle-info"></i><span class="font-medium">À propos</span>
+          </a>
+
+          <form action="{{ url_for('set_currency') }}" method="POST" class="flex items-center space-x-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+            <i class="fas fa-coins text-yellow-500 text-sm"></i>
+            <select name="currency" onchange="this.form.submit()" class="bg-transparent focus:outline-none text-sm cursor-pointer">
+              <option value="USD" {% if selected_currency == 'USD' %}selected{% endif %}>USD</option>
+              <option value="CDF" {% if selected_currency == 'CDF' %}selected{% endif %}>CDF</option>
+            </select>
+          </form>
+
+          <div class="relative group">
+            <button class="flex items-center space-x-2 text-gray-600 hover:text-emerald-600 transition">
+              {% if deliverer.profile_picture %}
+              <img src="{{ deliverer.profile_picture }}" alt="Profile" class="h-8 w-8 rounded-full border-2 border-emerald-500 object-cover">
+              {% else %}
+              <div class="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 border border-emerald-200"><i class="fas fa-user"></i></div>
+              {% endif %}
+              <span class="font-medium">{{ deliverer.first_name }}</span>
+              <i class="fas fa-chevron-down text-xs"></i>
+            </button>
+            <div class="absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-50">
+              <div class="p-3 border-b border-gray-100">
+                <p class="font-medium text-gray-800">
+                  {{ deliverer.first_name }} {{ deliverer.last_name }}
+                  {% if deliverer.verification_status == 'verified' %}
+                    <i class="fas fa-certificate text-blue-500 ml-1" title="Vérifié"></i>
+                  {% endif %}
+                </p>
+                <p class="text-xs text-gray-500">Livreur - {{ shop.name }}</p>
+              </div>
+              <a href="{{ url_for('deliverer_space', slug=shop.slug, section='profile') }}" class="flex items-center gap-2 px-4 py-3 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition">
+                <i class="fas fa-user-cog text-sm"></i><span>Mon Profil</span>
+              </a>
+              <a href="{{ url_for('deliverer_logout', slug=shop.slug) }}" class="flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 transition border-t border-gray-100">
+                <i class="fas fa-sign-out-alt text-sm"></i><span>Déconnexion</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="md:hidden">
+          <button id="mobileMenuBtn" class="text-gray-600 hover:text-emerald-600"><i class="fas fa-bars text-xl"></i></button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="max-w-6xl mx-auto px-4 mt-4 space-y-2">
+    {% for category, message in messages %}
+    <div class="p-3 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700 border border-red-200{% elif category == 'warning' %}bg-amber-100 text-amber-700 border border-amber-200{% else %}bg-emerald-100 text-emerald-700 border border-emerald-200{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <main class="max-w-6xl mx-auto px-4 py-6 flex-1 space-y-6">
+    <section class="deliverer-section {% if active_section != 'dashboard' %}hidden{% endif %}" id="section-dashboard">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 border border-emerald-100">
+          <p class="text-sm text-gray-500">Commission estimée due</p>
+          {% set due_val, due_cur = display_amount(commission_due_estimate, shop.currency) %}
+          <p class="text-2xl font-bold text-emerald-700">{{ '%.2f'|format(due_val) }} {{ due_cur }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border border-emerald-100">
+          <p class="text-sm text-gray-500">Livraisons ce mois</p>
+          <p class="text-2xl font-bold text-emerald-700">{{ monthly_stats.deliveries_this_month }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border border-emerald-100">
+          <p class="text-sm text-gray-500">Commission ce mois</p>
+          {% set month_val, month_cur = display_amount(monthly_stats.commission_this_month, shop.currency) %}
+          <p class="text-2xl font-bold text-emerald-700">{{ '%.2f'|format(month_val) }} {{ month_cur }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border border-emerald-100">
+          <p class="text-sm text-gray-500">Bonus hebdo estimé</p>
+          {% set bonus_val, bonus_cur = display_amount(monthly_stats.weekly_bonus_estimate, shop.currency) %}
+          <p class="text-2xl font-bold text-emerald-700">{{ '%.2f'|format(bonus_val) }} {{ bonus_cur }}</p>
+          <p class="text-xs text-gray-500 mt-1">{{ monthly_stats.weekly_deliveries }} livraisons cette semaine</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-4 border border-emerald-100 flex flex-col gap-3 md:flex-row md:items-center md:justify-between mt-4">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-800 mb-1">Livraisons reçues</h2>
+          <p class="text-sm text-gray-500">Suivez vos missions et mettez à jour le statut.</p>
+        </div>
+        <form action="{{ url_for('deliverer_set_status', slug=shop.slug) }}" method="POST" class="flex items-center gap-2">
+          <span class="text-sm text-gray-600">Statut:</span>
+          <select name="status" class="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500">
+            <option value="available" {% if deliverer.status == 'available' %}selected{% endif %}>Disponible</option>
+            <option value="busy" {% if deliverer.status == 'busy' %}selected{% endif %}>Occupé</option>
+            <option value="offline" {% if deliverer.status == 'offline' %}selected{% endif %}>Hors ligne</option>
+          </select>
+          <button type="submit" class="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700">Mettre à jour</button>
+          <span class="px-2 py-1 rounded-full text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">
+            {% if deliverer.status == 'available' %}Disponible{% elif deliverer.status == 'busy' %}Occupé{% else %}Hors ligne{% endif %}
+          </span>
+        </form>
+      </div>
+
+      <div class="space-y-3 mt-4">
+        {% for o in orders %}
+        <div class="bg-white rounded-lg shadow p-4 border border-gray-200">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-sm text-gray-500">Commande</p>
+              <p class="text-lg font-semibold text-gray-900">{{ o.order_number }}</p>
+              <p class="text-xs text-gray-500">Statut commande : {{ o.status }}</p>
+            </div>
+            <div class="text-right">
+              <span class="px-2 py-1 rounded-full text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">Assignée</span>
+            </div>
+          </div>
+
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="text-sm text-gray-700">
+              <p class="font-semibold text-gray-800">Adresse client</p>
+              <p>{{ o.shipping_address or '-' }}</p>
+            </div>
+            <div class="text-sm text-gray-700">
+              <p class="font-semibold text-gray-800">Client</p>
+              <p>{{ o.customer_name }}</p>
+            </div>
+            <div class="text-sm text-gray-700">
+              <p class="font-semibold text-gray-800">Montant</p>
+              {% set order_val, order_cur = display_amount(o.total_amount, shop.currency) %}
+              <p>{{ '%.2f'|format(order_val) }} {{ order_cur }}</p>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <form action="{{ url_for('deliverer_update_order_status', slug=shop.slug, order_id=o.id) }}" method="POST" class="flex flex-wrap items-center gap-2">
+              <select name="status" class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm">
+                {% for st in ['pending','in_progress','delivered','postponed','cancelled'] %}
+                <option value="{{ st }}" {% if o.status == st %}selected{% endif %}>{{ st }}</option>
+                {% endfor %}
+              </select>
+              <input type="text" name="note" placeholder="Note (optionnel)" class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm">
+              <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm">Mettre à jour</button>
+            </form>
+          </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-lg shadow p-6 border border-gray-200 text-center text-gray-500">Aucune livraison assignée pour le moment.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="deliverer-section {% if active_section != 'profile' %}hidden{% endif %}" id="section-profile">
+      <div class="bg-white rounded-lg shadow p-6 border border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Mettre à jour le profil</h3>
+        <form action="{{ url_for('deliverer_profile_update', slug=shop.slug) }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm text-gray-700 mb-1">Prénom</label>
+            <input type="text" name="first_name" value="{{ deliverer.first_name }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-700 mb-1">Nom</label>
+            <input type="text" name="last_name" value="{{ deliverer.last_name }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-700 mb-1">Téléphone</label>
+            <input type="text" name="phone" value="{{ deliverer.phone or '' }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-700 mb-1">Adresse</label>
+            <input type="text" name="address" value="{{ deliverer.address or '' }}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" id="deliverer_address_field">
+            <input type="hidden" id="deliverer_address_lat">
+            <input type="hidden" id="deliverer_address_lon">
+            <input type="hidden" id="deliverer_address_label">
+            <div class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <button type="button"
+                      class="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 hover:bg-emerald-50 flex items-center gap-2 w-full sm:w-auto justify-center"
+                      data-geo-btn
+                      data-geo-target="deliverer_address_field"
+                      data-geo-lat="deliverer_address_lat"
+                      data-geo-lon="deliverer_address_lon"
+                      data-geo-label="deliverer_address_label"
+                      data-geo-map="deliverer_address_map"
+                      data-geo-status="deliverer_address_status">
+                <i class="fas fa-location-crosshairs"></i>
+                <span>Me géolocaliser</span>
+              </button>
+              <p id="deliverer_address_status" class="text-xs text-gray-500">Utilisez votre position actuelle pour remplir l'adresse.</p>
+            </div>
+            <div class="mt-2 hidden" id="deliverer_address_map_wrapper">
+              <iframe id="deliverer_address_map" class="w-full h-40 rounded-lg border" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-700 mb-1">Photo de profil</label>
+            <img id="preview_deliverer_profile_picture" src="{{ deliverer.profile_picture or '' }}" class="h-16 w-16 rounded-full object-cover border {% if not deliverer.profile_picture %}hidden{% endif %}" alt="photo livreur">
+            <input type="file" name="profile_picture_file" id="deliverer_profile_picture_input" accept="image/*" class="w-full mt-2">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-700 mb-1">Nouveau mot de passe</label>
+            <input type="password" name="new_password" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="Laisser vide si inchangé">
+          </div>
+          <div class="md:col-span-2 text-right">
+            <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6 border border-gray-200 mt-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Historique des commissions estimées</h3>
+        {% if commission_history %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {% for item in commission_history %}
+          <div class="border rounded-lg p-3 bg-gray-50">
+            <p class="text-sm text-gray-500">Mois</p>
+            <p class="font-semibold text-gray-800">{{ item.month }}</p>
+            <p class="text-sm text-gray-500 mt-1">Livraisons</p>
+            <p class="font-semibold text-gray-800">{{ item.count }}</p>
+            <p class="text-sm text-gray-500 mt-1">Montant</p>
+            {% set hist_val, hist_cur = display_amount(item.amount, shop.currency) %}
+            <p class="font-semibold text-emerald-700">{{ '%.2f'|format(hist_val) }} {{ hist_cur }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">Aucune commission estimée pour le moment.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="deliverer-section {% if active_section != 'about' %}hidden{% endif %}" id="section-about">
+      <div class="bg-white rounded-lg shadow p-6 border border-gray-200 space-y-4">
+        <h2 class="text-xl font-semibold text-gray-800">À propos</h2>
+        <p class="text-sm text-gray-700">
+          Espace dédié aux livreurs de {{ shop.name }} pour suivre les livraisons, mettre à jour les statuts et consulter les commissions dans un cadre légal et transparent.
+        </p>
+
+        <div class="p-4 bg-indigo-50 rounded border border-indigo-100">
+          <h3 class="font-semibold text-indigo-800 mb-2 flex items-center gap-2">
+            <i class="fas fa-hand-holding-usd"></i> Rémunération du livreur
+          </h3>
+          <ol class="list-decimal list-inside text-sm text-gray-800 space-y-3">
+            <li><span class="font-semibold">Commission par livraison</span><br><span class="text-gray-700">Commande ≤ 25$ : commission fixe 3$</span><br><span class="text-gray-700">Commande &gt; 25$ : commission fixe 4$</span></li>
+            <li><span class="font-semibold">Bonus selon le montant de la commande</span><br><span class="text-gray-700">Dès 80$ : 4$ + 2% du montant total de la commande livrée</span></li>
+            <li><span class="font-semibold">Bonus nouvelle clientèle apportée</span><br><span class="text-gray-700">Si le client est apporté par le livreur : bonus du montant de la livraison + 5% du montant de la commande (validation admin).</span></li>
+            <li><span class="font-semibold">Bonus hebdomadaire</span><br><span class="text-gray-700">Au moins 8 livraisons dans la semaine : +5$</span></li>
+          </ol>
+          <p class="text-xs text-gray-600 mt-2">Certains bonus sont versés automatiquement, d’autres nécessitent validation par l’admin.</p>
+        </div>
+
+        <div class="p-4 bg-gray-50 rounded">
+          <h3 class="font-semibold text-gray-800 mb-1">Support & Conception</h3>
+          <p class="text-sm text-gray-700">
+            Plateforme web réalisée par <strong>Esperdigi Technologie</strong>, avec le développeur web-master <strong>KIBANYA MASAMBA Jonas Landry</strong>.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer-fixed">
+    <div class="max-w-6xl mx-auto px-4 py-4 text-center text-xs text-gray-500">
+      <p>© {{ current_year }} {{ shop.name }} Livreur. Propulsé par Esperdigi. Tous droits réservés.</p>
+    </div>
+  </footer>
+
+  <nav id="mobileAppNav" class="app-bottom-nav md:hidden hidden" aria-label="Navigation principale">
+    <a href="{{ url_for('deliverer_space', slug=shop.slug, section='dashboard') }}" class="app-bottom-item {% if active_section=='dashboard' %}active{% endif %}"><i class="fas fa-tachometer-alt"></i>Tableau</a>
+    <a href="{{ url_for('deliverer_space', slug=shop.slug, section='profile') }}" class="app-bottom-item {% if active_section=='profile' %}active{% endif %}"><i class="fas fa-user"></i>Profil</a>
+    <a href="{{ url_for('deliverer_space', slug=shop.slug, section='about') }}" class="app-bottom-item {% if active_section=='about' %}active{% endif %}"><i class="fas fa-circle-info"></i>À propos</a>
+    <a href="{{ url_for('deliverer_logout', slug=shop.slug) }}" class="app-bottom-item"><i class="fas fa-right-from-bracket"></i>Déconnexion</a>
+  </nav>
+
+  <script>
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileNav = document.getElementById('mobileAppNav');
+
+    if (mobileMenuBtn && mobileNav) {
+      mobileMenuBtn.addEventListener('click', function() {
+        mobileNav.classList.toggle('hidden');
+        document.body.classList.toggle('mobile-nav-open', !mobileNav.classList.contains('hidden'));
+      });
+
+      document.addEventListener('click', function(event) {
+        if (!mobileNav || mobileNav.classList.contains('hidden')) return;
+        if (!mobileNav.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
+          mobileNav.classList.add('hidden');
+          document.body.classList.remove('mobile-nav-open');
+        }
+      });
+    }
+
+    function initGeoWidgets() {
+      document.querySelectorAll('[data-geo-btn]').forEach(btn => {
+        if (btn.dataset.geoBound) return;
+        btn.dataset.geoBound = '1';
+        const target = document.getElementById(btn.dataset.geoTarget);
+        const latEl = document.getElementById(btn.dataset.geoLat);
+        const lonEl = document.getElementById(btn.dataset.geoLon);
+        const labelEl = document.getElementById(btn.dataset.geoLabel);
+        const statusEl = document.getElementById(btn.dataset.geoStatus);
+        const mapFrame = document.getElementById(btn.dataset.geoMap);
+        const mapWrapper = mapFrame ? mapFrame.parentElement : null;
+
+        const setStatus = (msg, isError=false) => {
+          if (!statusEl) return;
+          statusEl.textContent = msg;
+          statusEl.className = `text-xs ${isError ? 'text-red-600' : 'text-gray-600'}`;
+        };
+
+        const setCoords = (lat, lon, label='') => {
+          if (latEl) latEl.value = lat;
+          if (lonEl) lonEl.value = lon;
+          if (labelEl) labelEl.value = label || (target ? target.value : '');
+          if (mapFrame) {
+            mapFrame.src = `https://www.google.com/maps?q=${lat},${lon}&z=15&output=embed`;
+            mapWrapper && mapWrapper.classList.remove('hidden');
+          }
+          setStatus('Position détectée.');
+        };
+
+        btn.addEventListener('click', () => {
+          if (!navigator.geolocation) {
+            setStatus('La géolocalisation n’est pas supportée.', true);
+            return;
+          }
+          setStatus('Recherche de votre position...');
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const { latitude, longitude } = pos.coords;
+              setCoords(latitude.toFixed(6), longitude.toFixed(6));
+            },
+            () => setStatus('Impossible de récupérer votre position.', true),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+          );
+        });
+      });
+    }
+
+    const delivererProfileInput = document.getElementById('deliverer_profile_picture_input');
+    const delivererProfilePreview = document.getElementById('preview_deliverer_profile_picture');
+    if (delivererProfileInput && delivererProfilePreview) {
+      delivererProfileInput.addEventListener('change', () => {
+        const file = delivererProfileInput.files && delivererProfileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          delivererProfilePreview.src = e.target.result;
+          delivererProfilePreview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initGeoWidgets);
+  </script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Exemple d'utilisation des pays - {{ platform_settings.platform_name if platform_settings and platform_settings.platform_name else 'Tekanayo App' }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto">
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">
+        Exemple d'utilisation de Flask Countries
+      </h1>
+      <p class="text-xl text-gray-600">
+        Équivalent de django-countries pour Flask
+      </p>
+    </div>
+
+    <!-- Countries List -->
+    <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Liste des pays disponibles</h2>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">Tous les pays</h3>
+          <div class="max-h-96 overflow-y-auto border rounded-lg p-4">
+            {% for code, name in countries_for_select() %}
+            <div class="flex justify-between py-1 border-b border-gray-100 last:border-b-0">
+              <span class="text-sm">{{ name }}</span>
+              <span class="text-xs text-gray-500">{{ code }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">Pays africains (priorisés)</h3>
+          <div class="max-h-96 overflow-y-auto border rounded-lg p-4">
+            {% for code, name in african_countries_for_select() %}
+            <div class="flex justify-between py-1 border-b border-gray-100 last:border-b-0">
+              <span class="text-sm">{{ name }}</span>
+              <span class="text-xs text-gray-500">{{ code }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Countries with Dial Codes -->
+    <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Pays avec codes d'appel</h2>
+
+      <div class="grid md:grid-cols-3 gap-4">
+        {% for code, name, dial_code in african_countries_with_dial_codes() %}
+        <div class="border rounded-lg p-4 hover:bg-gray-50 transition">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-lg">{{ get_flag_emoji(code) }}</span>
+            <span class="font-medium text-sm">{{ name }}</span>
+          </div>
+          <div class="text-xs text-gray-600">
+            {{ code }} • {{ dial_code }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% macro get_flag_emoji(country_code) %}
+  {% set flags = {
+    'CD': '🇨🇩',
+    'CM': '🇨🇲',
+    'ML': '🇲🇱',
+    'SN': '🇸🇳',
+    'NG': '🇳🇬',
+    'KE': '🇰🇪',
+    'ZA': '🇿🇦',
+    'EG': '🇪🇬',
+    'MA': '🇲🇦',
+    'TN': '🇹🇳',
+    'DZ': '🇩🇿',
+    'GH': '🇬🇭',
+    'ET': '🇪🇹',
+    'UG': '🇺🇬',
+    'RW': '🇷🇼',
+    'TZ': '🇹🇿'
+  } %}
+  {{ flags.get(country_code, '🏳️') }}
+{% endmacro %}

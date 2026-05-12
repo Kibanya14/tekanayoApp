@@ -1,0 +1,168 @@
+{% extends "admin/basee.html" %}
+
+{% block title %}Annonces - Tekanayo{% endblock %}
+{% block header_title %}Gestion des Annonces{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card-surface rounded-2xl p-4">
+            <p class="text-sm text-slate-500"><i class="fas fa-bullhorn mr-2 text-cyan-600"></i>Total annonces</p>
+            <p class="text-2xl font-bold mt-1">{{ announcements|length }}</p>
+        </div>
+        <div class="card-surface rounded-2xl p-4">
+            <p class="text-sm text-slate-500"><i class="fas fa-link mr-2 text-indigo-600"></i>Avec bouton CTA</p>
+            <p class="text-2xl font-bold mt-1">{{ announcements|selectattr('cta_url')|list|length }}</p>
+        </div>
+        <div class="card-surface rounded-2xl p-4">
+            <p class="text-sm text-slate-500"><i class="fas fa-clock mr-2 text-amber-600"></i>Dernière publication</p>
+            <p class="text-base font-semibold mt-1">{{ announcements[0].created_at.strftime('%d/%m/%Y %H:%M') if announcements and announcements[0].created_at else 'Aucune' }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <section class="xl:col-span-1 card-surface rounded-2xl p-5">
+            <h2 class="text-xl font-bold"><i class="fas fa-pen-to-square text-cyan-600 mr-2"></i>Publier une annonce</h2>
+            <form action="{{ url_for('admin_add_announcement') }}" method="POST" class="space-y-3 mt-4" id="announcementForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <label class="block text-sm font-semibold text-slate-700">Titre</label>
+                <input required name="title" id="annTitle" maxlength="120" placeholder="Titre de l'annonce" class="rounded-xl px-4 py-3 border w-full">
+
+                <div class="flex items-center justify-between">
+                    <label class="block text-sm font-semibold text-slate-700">Contenu</label>
+                    <span id="annCounter" class="text-xs text-slate-400">0 / 1200</span>
+                </div>
+                <textarea required name="content" id="annContent" maxlength="1200" placeholder="Décrivez votre annonce" class="rounded-xl px-4 py-3 border w-full min-h-[140px]"></textarea>
+
+                <label class="block text-sm font-semibold text-slate-700">Texte bouton (optionnel)</label>
+                <input name="cta_label" id="annCtaLabel" placeholder="Ex: Voir l'offre" class="rounded-xl px-4 py-3 border w-full">
+
+                <label class="block text-sm font-semibold text-slate-700">URL bouton (optionnel)</label>
+                <div class="relative">
+                    <i class="fas fa-link absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input name="cta_url" id="annCtaUrl" placeholder="https://..." class="rounded-xl pl-10 pr-4 py-3 border w-full">
+                </div>
+
+                <button class="w-full rounded-xl bg-cyan-600 text-white py-3 hover:bg-cyan-500">
+                    <i class="fas fa-paper-plane mr-2"></i>Publier
+                </button>
+            </form>
+        </section>
+
+        <section class="xl:col-span-2 card-surface rounded-2xl p-5">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                <h2 class="text-xl font-bold"><i class="fas fa-newspaper text-indigo-600 mr-2"></i>Annonces publiées</h2>
+                <a href="{{ url_for('tekanayo_admin_panel') }}" class="text-sm text-blue-600 hover:text-blue-500">
+                    <i class="fas fa-arrow-left mr-2"></i>Retour dashboard
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                <div class="md:col-span-2 relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input id="announcementSearch" type="text" placeholder="Filtrer les annonces..." class="rounded-xl pl-10 pr-4 py-2 border w-full">
+                </div>
+                <select id="announcementFilter" class="rounded-xl px-4 py-2 border w-full">
+                    <option value="all">Toutes les annonces</option>
+                    <option value="cta">Avec CTA</option>
+                    <option value="no-cta">Sans CTA</option>
+                </select>
+            </div>
+
+            <div class="mb-3 text-sm text-slate-500">
+                <i class="fas fa-filter mr-2"></i><span id="announcementVisibleCount">{{ announcements|length }}</span> résultat(s)
+            </div>
+
+            <div class="space-y-3" id="announcementsList">
+                {% for a in announcements %}
+                <article class="rounded-xl border border-[var(--border)] p-4 announcement-item" data-has-cta="{{ '1' if a.cta_label and a.cta_url else '0' }}">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h3 class="font-semibold text-gray-900"><i class="fas fa-bullhorn mr-2 text-cyan-600"></i>{{ a.title }}</h3>
+                            <p class="text-sm text-gray-500 mt-1">{{ a.created_at.strftime('%d/%m/%Y %H:%M') if a.created_at else '-' }}</p>
+                        </div>
+                        {% if a.cta_label and a.cta_url %}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-200"><i class="fas fa-link"></i>CTA</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-gray-700 mt-3 whitespace-pre-line">{{ a.content }}</p>
+                    {% if a.cta_label and a.cta_url %}
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <a href="{{ a.cta_url }}" target="_blank" rel="noopener" class="inline-flex px-3 py-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                            <i class="fas fa-up-right-from-square mr-2"></i>{{ a.cta_label }}
+                        </a>
+                        <button type="button" class="copy-cta-url inline-flex px-3 py-2 rounded-lg border text-slate-600 hover:bg-slate-50" data-url="{{ a.cta_url }}">
+                            <i class="fas fa-copy mr-2"></i>Copier le lien
+                        </button>
+                    </div>
+                    {% endif %}
+                </article>
+                {% else %}
+                <p class="text-gray-500">Aucune annonce pour le moment.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  const searchInput = document.getElementById('announcementSearch');
+  const typeFilter = document.getElementById('announcementFilter');
+  const items = Array.from(document.querySelectorAll('.announcement-item'));
+  const visibleCount = document.getElementById('announcementVisibleCount');
+
+  const content = document.getElementById('annContent');
+  const counter = document.getElementById('annCounter');
+
+  const applyFilters = () => {
+    const query = (searchInput?.value || '').trim().toLowerCase();
+    const filter = typeFilter?.value || 'all';
+    let visible = 0;
+
+    items.forEach((item) => {
+      const text = item.innerText.toLowerCase();
+      const hasCta = item.dataset.hasCta === '1';
+      const matchSearch = !query || text.includes(query);
+      const matchType = filter === 'all' || (filter === 'cta' && hasCta) || (filter === 'no-cta' && !hasCta);
+      const show = matchSearch && matchType;
+      item.style.display = show ? '' : 'none';
+      if (show) visible += 1;
+    });
+
+    if (visibleCount) visibleCount.textContent = String(visible);
+  };
+
+  if (searchInput) searchInput.addEventListener('input', applyFilters);
+  if (typeFilter) typeFilter.addEventListener('change', applyFilters);
+
+  if (content && counter) {
+    const refreshCounter = () => {
+      counter.textContent = `${content.value.length} / 1200`;
+    };
+    content.addEventListener('input', refreshCounter);
+    refreshCounter();
+  }
+
+  document.querySelectorAll('.copy-cta-url').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const value = btn.getAttribute('data-url') || '';
+      if (!value) return;
+      try {
+        await navigator.clipboard.writeText(value);
+        const previous = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check mr-2 text-emerald-600"></i>Copié';
+        setTimeout(() => { btn.innerHTML = previous; }, 1300);
+      } catch (_) {
+        window.prompt('Copiez ce lien:', value);
+      }
+    });
+  });
+
+  applyFilters();
+})();
+</script>
+{% endblock %}

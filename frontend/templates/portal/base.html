@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tekanayo App{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- International Telephone Input -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+    
+    <!-- Phone Input Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/phone-input.css') }}">
+    
+    <link rel="icon" href="{{ platform_settings.portal_logo_url if platform_settings and platform_settings.portal_logo_url else media_url('uploads/logos/default_logo.svg') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --brand-25: #f2fdf6;
+            --brand-50: #ecfdf3;
+            --brand-100: #d1fae5;
+            --brand-200: #a7f3d0;
+            --brand-300: #6ee7b7;
+            --brand-400: #34d399;
+            --brand-500: #10b981;
+            --brand-600: #059669;
+            --brand-700: #047857;
+            --brand-800: #065f46;
+            --ink: #0f172a;
+            --muted: #4b5563;
+            --surface: #ffffff;
+            --app-bg: #f3faf6;
+            --app-outline: rgba(15, 23, 42, 0.08);
+            --app-shadow: 0 25px 60px rgba(15, 23, 42, 0.12);
+        }
+        .dark {
+            --app-bg: #0b1220;
+            --surface: #0f172a;
+            --ink: #e5e7eb;
+            --muted: #94a3b8;
+        }
+        body {
+            background: radial-gradient(1200px 600px at 10% -10%, #d1fae5 0%, transparent 60%),
+                        radial-gradient(800px 400px at 100% 0%, #bbf7d0 0%, transparent 55%),
+                        var(--app-bg);
+            color: var(--ink);
+            font-family: "Sora", "Segoe UI", sans-serif;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle at 20% 20%, rgba(5, 150, 105, 0.08), transparent 40%),
+                              radial-gradient(circle at 80% 10%, rgba(16, 185, 129, 0.08), transparent 45%),
+                              radial-gradient(circle at 50% 90%, rgba(5, 150, 105, 0.05), transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        h1, h2, h3, .app-title { font-family: "Syne", "Sora", sans-serif; }
+        .app-frame {
+            max-width: 1280px;
+            margin: 18px auto 48px;
+            background: var(--surface);
+            border-radius: 28px;
+            box-shadow: var(--app-shadow);
+            border: 1px solid var(--app-outline);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 32px);
+            position: relative;
+            z-index: 1;
+        }
+        @media (max-width: 1024px) {
+            .app-frame {
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+        }
+        .app-main { padding-bottom: 0; }
+        @media (max-width: 767px) {
+            body.mobile-nav-open .app-main { padding-bottom: 96px; }
+        }
+        .app-nav {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--app-outline);
+        }
+        .app-hero {
+            background: linear-gradient(130deg, #065f46 0%, #059669 50%, #10b981 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .app-hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(500px 220px at 15% 20%, rgba(255, 255, 255, 0.25), transparent 55%),
+                        radial-gradient(600px 260px at 90% 0%, rgba(255, 255, 255, 0.18), transparent 55%);
+            pointer-events: none;
+        }
+        .app-hero-card {
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
+        }
+        .app-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.18);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .gradient-bg {
+            background: linear-gradient(130deg, #065f46 0%, #059669 60%, #10b981 100%);
+        }
+        .hover-scale {
+            transition: transform 0.3s ease;
+        }
+        .hover-scale:hover {
+            transform: scale(1.05);
+        }
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+        }
+        .whatsapp-btn {
+            position: fixed;
+            bottom: 18px;
+            right: 18px;
+            background: #25d366;
+            color: white;
+            border-radius: 9999px;
+            box-shadow: 0 10px 25px rgba(37, 211, 102, 0.35);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            font-weight: 700;
+            z-index: 60;
+        }
+        .whatsapp-btn:hover {
+            background: #1ebe5d;
+            transform: translateY(-1px);
+        }
+        @media (max-width: 768px) {
+            .whatsapp-btn { bottom: 96px; }
+        }
+        .telegram-btn {
+            position: fixed;
+            bottom: 78px;
+            right: 18px;
+            background: #229ed9;
+            color: white;
+            border-radius: 9999px;
+            box-shadow: 0 10px 25px rgba(34, 158, 217, 0.35);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            font-weight: 700;
+            z-index: 59;
+        }
+        .telegram-btn:hover {
+            background: #1b8cc3;
+            transform: translateY(-1px);
+        }
+        @media (max-width: 768px) {
+            .telegram-btn { bottom: 156px; }
+        }
+        .whatsapp-pulse {
+            animation: pulse 1.8s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.35); }
+            70% { box-shadow: 0 0 0 12px rgba(37, 211, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+        }
+        .nav-badge {
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            line-height: 1;
+            padding: 4px 7px;
+            border-radius: 999px;
+            margin-left: 6px;
+        }
+        .app-bottom-nav {
+            position: fixed;
+            left: 50%;
+            bottom: 16px;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--app-outline);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+            border-radius: 999px;
+            padding: 10px 14px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            max-width: calc(100% - 24px);
+            z-index: 70;
+            backdrop-filter: blur(10px);
+            -webkit-overflow-scrolling: touch;
+        }
+        .app-bottom-nav::-webkit-scrollbar { height: 0; }
+        .app-bottom-nav { scrollbar-width: none; }
+        .app-bottom-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #475569;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 10px;
+            border-radius: 14px;
+            transition: all 0.2s ease;
+            flex: 0 0 auto;
+        }
+        .app-bottom-item i { font-size: 16px; }
+        .app-bottom-item.active,
+        .app-bottom-item:hover {
+            background: var(--brand-50);
+            color: var(--brand-700);
+        }
+        .app-bottom-select { min-width: 96px; }
+        .app-bottom-select-input {
+            width: 84px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--app-outline);
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            color: #475569;
+            text-align: center;
+        }
+        @keyframes appFade {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .app-fade { animation: appFade 0.7s ease both; }
+        .app-stagger > * {
+            animation: appFade 0.7s ease both;
+            animation-delay: calc(var(--i, 0) * 80ms);
+        }
+
+        .text-purple-800 { color: var(--brand-800) !important; }
+        .text-purple-700 { color: var(--brand-700) !important; }
+        .text-purple-600 { color: var(--brand-600) !important; }
+        .text-purple-500 { color: var(--brand-500) !important; }
+        .text-purple-400 { color: var(--brand-400) !important; }
+        .text-purple-300 { color: var(--brand-300) !important; }
+        .text-purple-200 { color: var(--brand-200) !important; }
+        .bg-purple-800 { background-color: var(--brand-800) !important; }
+        .bg-purple-700 { background-color: var(--brand-700) !important; }
+        .bg-purple-600 { background-color: var(--brand-600) !important; }
+        .bg-purple-500 { background-color: var(--brand-500) !important; }
+        .bg-purple-300 { background-color: var(--brand-300) !important; }
+        .bg-purple-200 { background-color: var(--brand-200) !important; }
+        .bg-purple-100 { background-color: var(--brand-100) !important; }
+        .bg-purple-50 { background-color: var(--brand-50) !important; }
+        .bg-purple-25 { background-color: var(--brand-25) !important; }
+        .border-purple-500 { border-color: var(--brand-500) !important; }
+        .border-purple-300 { border-color: var(--brand-300) !important; }
+        .border-purple-200 { border-color: var(--brand-200) !important; }
+        .border-purple-100 { border-color: var(--brand-100) !important; }
+        .ring-purple-500 { --tw-ring-color: var(--brand-500) !important; }
+        .ring-purple-100 { --tw-ring-color: var(--brand-100) !important; }
+        .focus\:ring-purple-500:focus { --tw-ring-color: var(--brand-500) !important; }
+        .hover\:bg-purple-700:hover { background-color: var(--brand-700) !important; }
+        .hover\:bg-purple-50:hover { background-color: var(--brand-50) !important; }
+        .hover\:text-purple-600:hover { color: var(--brand-600) !important; }
+        .hover\:text-purple-700:hover { color: var(--brand-700) !important; }
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+<body class="min-h-screen {% if session.get('theme') == 'dark' %}dark{% endif %}">
+    <!-- Navigation -->
+    <div class="app-frame">
+    <nav class="app-nav sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                {% set cart_count = (cart_count if cart_count is defined else session.get('cart_count', 0)) | int %}
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="{{ url_for('tekanayo_portal') }}" class="flex items-center space-x-2">
+                        {% if platform_settings and platform_settings.portal_logo_url %}
+                        <img src="{{ platform_settings.portal_logo_url }}" 
+                             alt="Logo" class="h-12 w-12 rounded-full object-cover ring-2 ring-purple-100">
+                        {% else %}
+                        <i class="fas fa-book text-purple-600 text-2xl"></i>
+                        {% endif %}
+                        <span class="font-bold text-xl" style="color:var(--text);">
+                            {{ platform_settings.platform_name if platform_settings and platform_settings.platform_name else 'Tekanayo App' }}
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Menu Navigation -->
+                <div class="hidden md:flex items-center space-x-8">
+                    {% set is_admin = current_user.is_authenticated and current_user.is_admin %}
+                    {% set customer = shop_customer if shop_customer is defined else None %}
+                    {% set portal_user = current_user if current_user.is_authenticated and not is_admin else None %}
+                    <!-- Currency selector -->
+                    <form action="{{ url_for('set_currency') }}" method="POST" class="flex items-center space-x-2 bg-white px-3 py-1 rounded-full shadow border border-gray-200 hidden-on-seller-register">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <i class="fas fa-coins text-yellow-500"></i>
+                        <select name="currency" onchange="this.form.submit()" class="bg-transparent focus:outline-none">
+                            {% for cur in available_currencies %}
+                                <option value="{{ cur }}" {% if cur == current_currency %}selected{% endif %}>{{ cur }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                    <a href="{{ url_for('tekanayo_portal') }}" class="text-gray-600 hover:text-purple-600 transition">
+                        <i class="fas fa-home mr-1"></i>Accueil
+                    </a>
+                    <a href="{{ url_for('tekanayo_portal_products') }}" class="text-gray-600 hover:text-purple-600 transition hidden-on-seller-register">
+                        <i class="fas fa-book mr-1"></i>Produits
+                    </a>
+                    <a href="{{ url_for('tekanayo_portal_page', page='about') }}" class="text-gray-600 hover:text-purple-600 transition hidden-on-seller-register">
+                        <i class="fas fa-circle-info mr-1"></i>À propos
+                    </a>
+                    {% if customer %}
+                    <a href="{{ url_for('tekanayo_portal_page', page='forum') }}" class="text-gray-600 hover:text-purple-600 transition flex items-center relative hidden-on-seller-register">
+                        <i class="fas fa-comments mr-1"></i><span>Forum</span>
+                        {% if forum_unread_count %}
+                        <span class="nav-badge">{{ forum_unread_count }}</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+                    
+                    <!-- Panier: n'afficher que pour les clients (pas pour les admins connectés) -->
+                    {% if not is_admin %}
+                    <div class="relative hidden-on-seller-register">
+                        <a href="{{ url_for('tekanayo_portal_page', page='cart') }}" class="text-gray-600 hover:text-purple-600 transition relative">
+                            <i class="fas fa-shopping-cart text-xl"></i>
+                    <span class="cart-badge {% if cart_count <= 0 %}hidden{% endif %}" data-cart-count aria-label="{{ cart_count }} article(s) dans le panier">{{ cart_count }}</span>
+                    </a>
+                </div>
+                {% endif %}
+
+                    <!-- Profil Utilisateur -->
+                    {% if customer %}
+                        <div class="relative group hidden-on-seller-register" id="profileDropdown">
+                            <button class="flex items-center space-x-2 text-gray-600 hover:text-purple-600 transition">
+                                <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 border border-purple-200">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <span>{{ customer.first_name }}</span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                                <a href="{{ url_for('tekanayo_portal_page', page='profile') }}" class="block px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">
+                                    <i class="fas fa-user mr-2"></i>Mon Profil
+                                </a>
+                                <a href="{{ url_for('tekanayo_portal_page', page='orders') }}" class="block px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">
+                                    <i class="fas fa-box mr-2"></i>Mes commandes
+                                </a>
+                                {% if portal_user %}
+                                <a href="{{ url_for('portal_logout') }}" class="block px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition border-t">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Déconnexion
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('seller_shop_customer_logout', slug=shop_ref(shop)) }}" class="block px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition border-t">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Déconnexion
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% elif is_admin %}
+                        <div class="relative group hidden-on-seller-register" id="profileDropdown">
+                            <button class="flex items-center space-x-2 text-gray-600 hover:text-purple-600 transition">
+                                {% set has_pic = current_user.profile_picture and current_user.profile_picture != 'default_profile.png' %}
+                                {% if has_pic %}
+                                <img src="{{ media_url('uploads/profiles/' + current_user.profile_picture) }}" 
+                                     alt="Profile" class="h-8 w-8 rounded-full border-2 border-purple-500 object-cover">
+                                {% else %}
+                                <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 border border-purple-200">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                {% endif %}
+                                <span>{{ current_user.first_name }}</span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            <div class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                                <a href="{{ url_for('tekanayo_admin_panel') }}" class="block px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">
+                                    <i class="fas fa-tools mr-2"></i>Administration
+                                </a>
+                                <a href="{{ url_for('tekanayo_admin_panel') }}" class="block px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition">
+                                    <i class="fas fa-user-shield mr-2"></i>Profil Administrateur
+                                </a>
+                                <a href="{{ url_for('tekanayo_admin_logout') }}" class="block px-4 py-3 text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition border-t">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Déconnexion
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                    <div class="flex items-center space-x-4 hidden-on-seller-register">
+                        <a href="{{ url_for('tekanayo_portal_page', page='login') }}" class="text-gray-600 hover:text-purple-600 transition">
+                            <i class="fas fa-sign-in-alt mr-1"></i>Connexion
+                        </a>
+                        <a href="{{ url_for('tekanayo_portal_page', page='register') }}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                            <i class="fas fa-user-plus mr-1"></i>S'inscrire
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Menu Mobile -->
+                <div class="md:hidden">
+                    <button id="mobileMenuBtn" class="text-gray-600 hover:text-purple-600">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </nav>
+
+    <!-- Contenu Principal -->
+    <main class="flex-1 app-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    {% if request.endpoint != 'tekanayo_portal_page' or request.view_args.get('page') != 'forum' %}
+    <footer class="bg-gray-800 text-white mt-16">
+        {% set contact_email = platform_settings.contact_email if platform_settings and platform_settings.contact_email else 'support@tekanayo.com' %}
+        {% set contact_phone = platform_settings.contact_phone if platform_settings and platform_settings.contact_phone else '+243000000000' %}
+        {% set contact_address = platform_settings.office_address if platform_settings and platform_settings.office_address else 'Adresse Tekanayo non renseignée' %}
+        {% set facebook_url = shop_settings.facebook_url if shop_settings and shop_settings.facebook_url else None %}
+        {% set whatsapp_group_url = shop_settings.whatsapp_group_url if shop_settings and shop_settings.whatsapp_group_url else None %}
+        {% set telegram_url = shop_settings.telegram_url if shop_settings and shop_settings.telegram_url else None %}
+        {% set telegram_username = shop_settings.telegram_username if shop_settings and shop_settings.telegram_username else None %}
+        <div class="max-w-7xl mx-auto px-4 py-10 space-y-6">
+            <div class="grid gap-6 md:grid-cols-4">
+                <div class="space-y-2">
+                    <p class="text-gray-300 font-semibold">
+                        © 2026 {{ platform_settings.platform_name if platform_settings and platform_settings.platform_name else 'Tekanayo App' }}
+                    </p>
+                    <p class="text-gray-400 text-sm">Plateforme e-commerce légale et enregistrée.</p>
+                    <p class="text-gray-400 text-sm flex items-center gap-2">
+                        <i class="fas fa-envelope text-purple-200"></i>
+                        <span>{{ contact_email }}</span>
+                    </p>
+                    <p class="text-gray-400 text-sm flex items-center gap-2">
+                        <i class="fas fa-phone-alt text-purple-200"></i>
+                        <span>{{ contact_phone }}</span>
+                    </p>
+                    <p class="text-gray-400 text-sm flex items-start gap-2">
+                        <i class="fas fa-map-marker-alt text-purple-200 mt-0.5"></i>
+                        <span>{{ contact_address }}</span>
+                    </p>
+                </div>
+                <div class="space-y-3">
+                    <h3 class="font-semibold text-white">Navigation</h3>
+                    <div class="flex flex-col space-y-2 text-gray-300 text-sm">
+                        <a href="{{ url_for('tekanayo_portal_products') }}" class="hover:text-white transition">Produits</a>
+                        <a href="{{ url_for('tekanayo_portal_page', page='about') }}" class="hover:text-white transition">À propos</a>
+                        <a href="{{ url_for('tekanayo_portal_categories') }}" class="hover:text-white transition">Catégories</a>
+                        <a href="{{ url_for('tekanayo_portal_page', page='cart') }}" class="hover:text-white transition">Panier</a>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <h3 class="font-semibold text-white">Contact & communauté</h3>
+                    <div class="flex flex-col space-y-2 text-gray-300 text-sm">
+                        {% if facebook_url %}
+                        <a href="{{ facebook_url }}" target="_blank" rel="noopener" class="hover:text-white transition flex items-center gap-2">
+                            <i class="fab fa-facebook text-xl"></i><span>Page Facebook</span>
+                        </a>
+                        {% endif %}
+                        <a href="https://wa.me/{{ contact_phone|replace(' ', '')|replace('+', '') }}" target="_blank" rel="noopener" class="hover:text-white transition flex items-center gap-2">
+                            <i class="fab fa-whatsapp text-xl"></i><span>Contact WhatsApp</span>
+                        </a>
+                        {% if whatsapp_group_url %}
+                        <a href="{{ whatsapp_group_url }}" target="_blank" rel="noopener" class="hover:text-white transition flex items-center gap-2">
+                            <i class="fas fa-users text-lg"></i><span>Groupe WhatsApp</span>
+                        </a>
+                        {% endif %}
+                        {% if telegram_url or telegram_username %}
+                        <a href="{{ telegram_url if telegram_url else ('https://t.me/' + (telegram_username|replace('@',''))) }}" target="_blank" rel="noopener" class="hover:text-white transition flex items-center gap-2">
+                            <i class="fab fa-telegram text-xl"></i><span>Telegram</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <h3 class="font-semibold text-white">Légal & confiance</h3>
+                    <div class="flex flex-col space-y-2 text-gray-300 text-sm">
+                        <a href="{{ url_for('tekanayo_portal_legal') }}" class="hover:text-white transition">Mentions légales</a>
+                        <a href="{{ url_for('tekanayo_portal_terms') }}" class="hover:text-white transition">Conditions Générales</a>
+                        <a href="{{ url_for('tekanayo_portal_returns') }}" class="hover:text-white transition">Retours & remboursements</a>
+                        <a href="{{ url_for('tekanayo_portal_privacy') }}" class="hover:text-white transition">Politique de confidentialité</a>
+                    </div>
+                    <p class="text-gray-400 text-sm pt-2">Propulsé par Esperdigi. Tous droits réservés.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    {% endif %}
+
+    </div>
+
+    {% set raw_wa_phone = (shop_settings.whatsapp_number if shop_settings and shop_settings.whatsapp_number else (shop_settings.shop_phone if shop_settings and shop_settings.shop_phone else '+243000000000')) %}
+    {% set wa_phone = raw_wa_phone|replace(' ', '')|replace('+', '') %}
+    {% set telegram_url = shop_settings.telegram_url if shop_settings and shop_settings.telegram_url else None %}
+    {% set telegram_username = shop_settings.telegram_username if shop_settings and shop_settings.telegram_username else None %}
+    {% set telegram_link = telegram_url if telegram_url else ('https://t.me/' + (telegram_username|replace('@','')) if telegram_username else None) %}
+    {% if telegram_link %}
+    <a href="{{ telegram_link }}" class="telegram-btn" target="_blank" rel="noopener" aria-label="Ouvrir Telegram">
+        <i class="fab fa-telegram text-2xl"></i>
+        <span class="hidden sm:inline">Telegram</span>
+    </a>
+    {% endif %}
+    <a href="https://wa.me/{{ wa_phone }}" class="whatsapp-btn whatsapp-pulse" target="_blank" rel="noopener" aria-label="Ouvrir WhatsApp">
+        <i class="fab fa-whatsapp text-2xl"></i>
+        <span class="hidden sm:inline">WhatsApp</span>
+    </a>
+
+    <nav id="mobileAppNav" class="app-bottom-nav md:hidden hidden" aria-label="Navigation principale">
+        {% set is_admin = current_user.is_authenticated and current_user.is_admin %}
+        {% set customer = shop_customer if shop_customer is defined else None %}
+        <a href="{{ url_for('tekanayo_portal') }}" class="app-bottom-item {% if request.endpoint == 'tekanayo_portal' %}active{% endif %}">
+            <i class="fas fa-house"></i>
+            Accueil
+        </a>
+        <a href="{{ url_for('tekanayo_portal_products') }}" class="app-bottom-item {% if request.endpoint == 'tekanayo_portal_products' %}active{% endif %}">
+            <i class="fas fa-store"></i>
+            Produits
+        </a>
+        <form action="{{ url_for('set_currency') }}" method="POST" class="app-bottom-item app-bottom-select">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <i class="fas fa-coins"></i>
+            <select name="currency" onchange="this.form.submit()" class="app-bottom-select-input" aria-label="Devise">
+                {% for cur in available_currencies %}
+                <option value="{{ cur }}" {% if cur == current_currency %}selected{% endif %}>{{ cur }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% if customer %}
+        <a href="{{ url_for('tekanayo_portal_page', page='forum') }}" class="app-bottom-item {% if request.endpoint == 'tekanayo_portal_page' and request.view_args.get('page') == 'forum' %}active{% endif %}">
+            <i class="fas fa-comments"></i>
+            Forum
+        </a>
+        {% endif %}
+        {% if not is_admin %}
+        <a href="{{ url_for('tekanayo_portal_page', page='cart') }}" class="app-bottom-item {% if request.endpoint == 'tekanayo_portal_page' and request.view_args.get('page') == 'cart' %}active{% endif %} relative">
+            <i class="fas fa-cart-shopping"></i>
+            Panier
+            <span class="cart-badge absolute -top-1 -right-1 {% if cart_count <= 0 %}hidden{% endif %}" data-cart-count aria-label="{{ cart_count }} article(s) dans le panier">{{ cart_count }}</span>
+        </a>
+        {% endif %}
+        {% if customer %}
+        <a href="{{ url_for('tekanayo_portal_page', page='profile') }}" class="app-bottom-item {% if request.endpoint == 'tekanayo_portal_page' and request.view_args.get('page') == 'profile' %}active{% endif %}">
+            <i class="fas fa-user"></i>
+            Profil
+        </a>
+        {% if portal_user %}
+        <a href="{{ url_for('portal_logout') }}" class="app-bottom-item">
+            <i class="fas fa-right-from-bracket"></i>
+            Déconnexion
+        </a>
+        {% else %}
+        <a href="{{ url_for('seller_shop_customer_logout', slug=shop_ref(shop)) }}" class="app-bottom-item">
+            <i class="fas fa-right-from-bracket"></i>
+            Déconnexion
+        </a>
+        {% endif %}
+        {% elif is_admin %}
+        <a href="{{ url_for('tekanayo_admin_panel') }}" class="app-bottom-item">
+            <i class="fas fa-user-shield"></i>
+            Admin
+        </a>
+        <a href="{{ url_for('tekanayo_admin_logout') }}" class="app-bottom-item">
+            <i class="fas fa-right-from-bracket"></i>
+            Déconnexion
+        </a>
+        {% else %}
+        <a href="{{ url_for('tekanayo_portal_page', page='login') }}" class="app-bottom-item {% if request.endpoint == 'tekanayo_portal_page' and request.view_args.get('page') == 'login' %}active{% endif %}">
+            <i class="fas fa-right-to-bracket"></i>
+            Connexion
+        </a>
+        {% endif %}
+    </nav>
+
+    <!-- JavaScript -->
+    <script>
+        // Menu Mobile
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileNav = document.getElementById('mobileAppNav');
+        if (mobileMenuBtn && mobileNav) {
+            mobileMenuBtn.addEventListener('click', function() {
+                mobileNav.classList.toggle('hidden');
+                document.body.classList.toggle('mobile-nav-open', !mobileNav.classList.contains('hidden'));
+            });
+
+            // Fermer le menu mobile en cliquant à l'extérieur
+            document.addEventListener('click', function(event) {
+                if (!mobileNav || mobileNav.classList.contains('hidden')) return;
+                if (!mobileNav.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
+                    mobileNav.classList.add('hidden');
+                    document.body.classList.remove('mobile-nav-open');
+                }
+            });
+        }
+
+        // Messages flash
+        setTimeout(() => {
+            const flashes = document.querySelectorAll('.flash-message');
+            flashes.forEach(flash => {
+                flash.style.transition = 'opacity 0.5s ease';
+                flash.style.opacity = '0';
+                setTimeout(() => flash.remove(), 500);
+            });
+        }, 5000);
+
+        // Géolocalisation : attaché aux boutons portant data-geo-btn
+        function initGeoWidgets() {
+            document.querySelectorAll('[data-geo-btn]').forEach(btn => {
+                if (btn.dataset.geoBound) return;
+                btn.dataset.geoBound = '1';
+                const target = document.getElementById(btn.dataset.geoTarget);
+                const latEl = document.getElementById(btn.dataset.geoLat);
+                const lonEl = document.getElementById(btn.dataset.geoLon);
+                const labelEl = document.getElementById(btn.dataset.geoLabel);
+                const statusEl = document.getElementById(btn.dataset.geoStatus);
+                const mapFrame = document.getElementById(btn.dataset.geoMap);
+                const mapWrapper = mapFrame ? mapFrame.parentElement : null;
+
+                const setStatus = (msg, isError=false) => {
+                    if (!statusEl) return;
+                    statusEl.textContent = msg;
+                    statusEl.className = `text-xs ${isError ? 'text-red-600' : 'text-gray-600'}`;
+                };
+
+                const setCoords = (lat, lon, label='') => {
+                    if (latEl) latEl.value = lat;
+                    if (lonEl) lonEl.value = lon;
+                    if (labelEl) labelEl.value = label || (target ? target.value : '');
+                    if (mapFrame) {
+                        mapFrame.src = `https://www.google.com/maps?q=${lat},${lon}&z=15&output=embed`;
+                        mapWrapper && mapWrapper.classList.remove('hidden');
+                    }
+                    setStatus('Position détectée.');
+                };
+
+                btn.addEventListener('click', () => {
+                    if (!navigator.geolocation) {
+                        setStatus('La géolocalisation n’est pas supportée.', true);
+                        return;
+                    }
+                    setStatus('Recherche de votre position...');
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            const { latitude, longitude } = pos.coords;
+                            setCoords(latitude.toFixed(6), longitude.toFixed(6));
+                        },
+                        () => setStatus('Impossible de récupérer votre position.', true),
+                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+                    );
+                });
+            });
+        }
+
+        function getToastContainer() {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'fixed top-4 right-4 z-[9999] space-y-2';
+                document.body.appendChild(container);
+            }
+            return container;
+        }
+
+        function showToast(message, isError=false) {
+            if (!message) return;
+            const container = getToastContainer();
+            const toast = document.createElement('div');
+            toast.className = `${isError ? 'bg-red-600' : 'bg-green-600'} text-white px-4 py-3 rounded-lg shadow-lg text-sm flex items-center gap-2`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.35s ease'; }, 2600);
+            setTimeout(() => toast.remove(), 3100);
+        }
+
+        function updateCartBadges(count) {
+            const value = Number(count) || 0;
+            document.querySelectorAll('[data-cart-count]').forEach(badge => {
+                badge.textContent = value;
+                if (value > 0) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            });
+        }
+
+        function initAddToCartForms() {
+            document.querySelectorAll('form[data-add-to-cart]').forEach(form => {
+                if (form.dataset.bound === '1') return;
+                form.dataset.bound = '1';
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    const originalLabel = submitBtn ? submitBtn.innerHTML : '';
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class=\"animate-pulse\">Ajout...</span>';
+                    }
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        const data = await response.json().catch(() => null);
+                        if (!response.ok || !data || data.ok === false) {
+                            throw new Error((data && data.message) || 'Impossible d’ajouter au panier.');
+                        }
+                        updateCartBadges(data.cart_count ?? 0);
+                        showToast(data.message || 'Ajouté au panier');
+                    } catch (err) {
+                        showToast(err?.message || 'Impossible d’ajouter au panier.', true);
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalLabel || submitBtn.innerHTML;
+                        }
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initGeoWidgets();
+            initAddToCartForms();
+        });
+    </script>
+
+    <!-- Phone Input Script -->
+    <script src="{{ url_for('static', filename='js/phone-input.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,307 @@
+{% extends "clientvendeur/shoptheme/base.html" %}
+
+{% block title %}Mon Profil - {{ shop_settings.shop_name if shop_settings else 'Tekanayo' }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/phone-input.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">Mon Profil</h1>
+    <p class="text-gray-600 mb-8">Gérez vos informations personnelles et vos préférences</p>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200 sticky top-4">
+                <div class="text-center mb-6">
+                    <div class="relative inline-block">
+                        {% if shop_customer.profile_picture %}
+                        {% set pic = shop_customer.profile_picture %}
+                        <img src="{{ pic if pic.startswith('http') or pic.startswith('/uploads/') else media_url('uploads/profiles/' + pic) }}"
+                             alt="Photo de profil"
+                             class="h-24 w-24 rounded-full border-4 border-purple-500 object-cover mx-auto">
+                        {% else %}
+                        <div class="h-24 w-24 rounded-full border-4 border-purple-500 bg-purple-100 text-purple-700 flex items-center justify-center mx-auto">
+                            <i class="fas fa-user text-3xl"></i>
+                        </div>
+                        {% endif %}
+                        <button onclick="togglePhotoUpload()"
+                                class="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full hover:bg-purple-700 transition">
+                            <i class="fas fa-camera text-sm"></i>
+                        </button>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 mt-3">{{ shop_customer.first_name }} {{ shop_customer.last_name }}</h3>
+                    <p class="text-gray-600 text-sm">{{ shop_customer.email }}</p>
+                </div>
+
+                <nav class="space-y-2">
+                    <a href="#personal-info"
+                       class="flex items-center space-x-3 p-3 rounded-lg bg-purple-50 text-purple-600 font-medium">
+                        <i class="fas fa-user w-5 text-center"></i>
+                        <span>Informations Personnelles</span>
+                    </a>
+                    <a href="#orders"
+                       class="flex items-center space-x-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition">
+                        <i class="fas fa-shopping-bag w-5 text-center"></i>
+                        <span>Mes Commandes</span>
+                    </a>
+                    <a href="#security"
+                       class="flex items-center space-x-3 p-3 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition">
+                        <i class="fas fa-lock w-5 text-center"></i>
+                        <span>Sécurité</span>
+                    </a>
+                    <a href="#delete-account"
+                       class="flex items-center space-x-3 p-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="fas fa-user-slash w-5 text-center"></i>
+                        <span>Supprimer mon compte</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <div class="lg:col-span-3 space-y-6">
+            <div id="photoUpload" class="bg-white rounded-xl shadow-md p-6 border border-gray-200 hidden">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Changer la photo de profil</h3>
+                <form action="{{ url_for('seller_shop_customer_profile', slug=shop_ref(shop)) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="flex items-center space-x-4">
+                        <input type="file" name="profile_picture_file" accept="image/*"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <button type="submit"
+                                class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                            Uploader
+                        </button>
+                        <button type="button" onclick="togglePhotoUpload()"
+                                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                            Annuler
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-500">Formats acceptés: JPG, PNG, GIF, WEBP</p>
+                </form>
+            </div>
+
+            <div id="personal-info" class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+                    <i class="fas fa-user-circle text-purple-600"></i>
+                    <span>Informations Personnelles</span>
+                </h3>
+
+                <form action="{{ url_for('seller_shop_customer_profile', slug=shop_ref(shop)) }}" method="POST" class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
+                            <input type="text" name="first_name" value="{{ shop_customer.first_name }}" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nom</label>
+                            <input type="text" name="last_name" value="{{ shop_customer.last_name }}" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                          <i class="fas fa-envelope text-purple-600 mr-1"></i>Email
+                        </label>
+                        <input type="email" value="{{ shop_customer.email }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition" readonly>
+                        <p class="text-sm text-gray-500 mt-1">L'email ne peut pas être modifié</p>
+                    </div>
+
+                    <!-- Phone Input Component -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                          <i class="fas fa-phone text-purple-600 mr-1"></i>Numéro de téléphone
+                        </label>
+                        <div class="phone-input-wrapper" 
+                             data-country="{{ shop_customer.country_code or 'CD' }}" 
+                             data-phone="{{ shop_customer.phone_number or '' }}">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Adresse</label>
+                        <textarea name="address" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                  placeholder="Votre adresse complète">{{ shop_customer.address or '' }}</textarea>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="reset"
+                                class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                            Annuler
+                        </button>
+                        <button type="submit"
+                                class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center space-x-2">
+                            <i class="fas fa-save"></i>
+                            <span>Sauvegarder</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="orders" class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+                    <i class="fas fa-history text-blue-600"></i>
+                    <span>Historique des Commandes</span>
+                </h3>
+
+                {% if customer_orders %}
+                <div class="space-y-4">
+                    {% for order in customer_orders %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-semibold text-gray-800">Commande #{{ order.order_number }}</h4>
+                                <p class="text-sm text-gray-600">Passée le {{ order.created_at.strftime('%d/%m/%Y à %H:%M') }}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-bold text-gray-800">{{ convert_price(order.total_amount, from_currency=base_currency) }}</span>
+                                <div class="mt-1">
+                                    {% set status_badges = {
+                                        'pending': 'bg-yellow-100 text-yellow-800',
+                                        'confirmed': 'bg-blue-100 text-blue-800',
+                                        'shipped': 'bg-purple-100 text-purple-800',
+                                        'delivered': 'bg-green-100 text-green-800',
+                                        'cancelled': 'bg-red-100 text-red-800'
+                                    } %}
+                                    <span class="px-2 py-1 rounded-full text-xs font-semibold {{ status_badges.get(order.status, 'bg-gray-100 text-gray-700') }}">
+                                        {{ order.status|title }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <a href="{{ url_for('seller_shop_order_detail', slug=shop_ref(shop), order_id=order.id) }}"
+                               class="text-sm text-purple-600 hover:text-purple-700 font-medium">
+                                Voir les détails
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-shopping-bag text-4xl text-gray-300 mb-4"></i>
+                    <h4 class="text-lg font-medium text-gray-600">Aucune commande passée</h4>
+                    <p class="text-gray-500 mt-2">Vos commandes apparaîtront ici</p>
+                    <a href="{{ url_for('seller_shop_products', slug=shop_ref(shop)) }}"
+                       class="inline-block mt-4 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">
+                        Découvrir nos produits
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <div id="security" class="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+                    <i class="fas fa-shield-alt text-green-600"></i>
+                    <span>Sécurité du Compte</span>
+                </h3>
+
+                <form action="{{ url_for('seller_shop_customer_change_password', slug=shop_ref(shop)) }}" method="POST" class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mot de passe actuel</label>
+                        <input type="password" name="current_password" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nouveau mot de passe</label>
+                            <input type="password" name="new_password" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Confirmer le mot de passe</label>
+                            <input type="password" name="confirm_password" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4">
+                        <button type="submit"
+                                class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center space-x-2">
+                            <i class="fas fa-key"></i>
+                            <span>Changer le mot de passe</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="delete-account" class="bg-white rounded-xl shadow-md p-6 border border-red-200">
+                <h3 class="text-xl font-semibold text-red-700 mb-4 flex items-center space-x-2">
+                    <i class="fas fa-user-slash"></i>
+                    <span>Supprimer mon compte</span>
+                </h3>
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-red-800">
+                    <p class="font-semibold">Attention : action irréversible</p>
+                    <ul class="list-disc list-inside text-sm mt-2 space-y-1">
+                        <li>Votre profil et vos commandes ne seront plus accessibles.</li>
+                        <li>Vous serez automatiquement déconnecté.</li>
+                    </ul>
+                </div>
+                <form action="{{ url_for('seller_shop_customer_delete_account', slug=shop_ref(shop)) }}" method="POST" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mot de passe actuel</label>
+                        <input type="password" name="current_password" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Confirmez en tapant "SUPPRIMER"</label>
+                        <input type="text" name="confirm_delete" placeholder="SUPPRIMER" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 uppercase">
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit"
+                                class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center space-x-2"
+                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est définitive.')">
+                            <i class="fas fa-trash-alt"></i>
+                            <span>Supprimer mon compte</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/phone-input.js') }}"></script>
+<script>
+    function togglePhotoUpload() {
+        const uploadSection = document.getElementById('photoUpload');
+        uploadSection.classList.toggle('hidden');
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const wrapper = document.querySelector('.phone-input-wrapper');
+        if (wrapper && !wrapper.dataset.initialized) {
+            new PhoneInputComponent(wrapper, {
+                defaultCountry: 'CD',
+                requiredLength: 9,
+                africanCountriesFirst: true
+            });
+            wrapper.dataset.initialized = 'true';
+        }
+    });
+</script>
+{% endblock %}

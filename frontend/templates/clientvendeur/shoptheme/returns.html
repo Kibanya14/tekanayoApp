@@ -1,0 +1,72 @@
+{% extends "clientvendeur/shoptheme/base.html" %}
+
+{% block title %}Retours & Remboursements - {{ shop_settings.shop_name if shop_settings and shop_settings.shop_name else 'Votre boutique' }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-12 space-y-6">
+    {% set contact_email = shop_settings.shop_email if shop_settings and shop_settings.shop_email else 'À renseigner dans Paramètres' %}
+    {% set contact_phone = shop_settings.shop_phone if shop_settings and shop_settings.shop_phone else 'À renseigner dans Paramètres' %}
+    {% set returns_content = shop_settings.returns_page_content if shop_settings and shop_settings.returns_page_content else '' %}
+    <div class="bg-white rounded-xl shadow p-6 space-y-4">
+        <div class="flex items-start gap-3">
+            <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-700">
+                <i class="fas fa-rotate-left text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Politique de retour, échange & remboursement</h1>
+                <p class="text-gray-600">Informations de retour de la boutique.</p>
+            </div>
+        </div>
+
+        <div class="space-y-5 text-gray-700 leading-relaxed">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Contenu personnalisé</h2>
+                {% if returns_content %}
+                <p>{{ returns_content | replace('\n', '<br>') | safe }}</p>
+                {% else %}
+                <p>Contenu à configurer par le vendeur dans les paramètres.</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Article 1 – Principe général</h2>
+                <p>Contenu à configurer par le vendeur dans les paramètres.</p>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Article 2 – Délais de réclamation</h2>
+                <p>Contenu à configurer par le vendeur dans les paramètres.</p>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Article 3 – Conditions d’acceptation</h2>
+                <p>Contenu à configurer par le vendeur dans les paramètres.</p>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Article 4 – Procédure obligatoire</h2>
+                <p>Contenu à configurer par le vendeur dans les paramètres.</p>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Article 5 – Modalités de remboursement</h2>
+                <p>Contenu à configurer par le vendeur dans les paramètres.</p>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Article 6 – Cas exclus</h2>
+                <p>Contenu à configurer par le vendeur dans les paramètres.</p>
+            </div>
+
+            <div>
+                <h2 class="text-lg font-semibold text-gray-800">Article 7 – Contact & support</h2>
+                <p>Contenu à configurer par le vendeur dans les paramètres.</p>
+                <ul class="list-disc ml-5 space-y-1">
+                    <li>WhatsApp : {{ contact_phone }}</li>
+                    <li>Email : {{ contact_email }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

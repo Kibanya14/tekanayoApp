@@ -1,0 +1,737 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Devenir Vendeur - {{ platform_settings.platform_name if platform_settings and platform_settings.platform_name else 'Tekanayo App' }}{% endblock %}
+
+{% block extra_styles %}
+<style>
+.hidden-on-seller-register,
+#mobileMenuBtn,
+#mobileAppNav {
+  display: none !important;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.step-dot {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  transition: all 0.3s ease;
+}
+
+.step-dot.active {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.step-dot.completed {
+  background: #10b981;
+  color: white;
+}
+
+.step-content {
+  animation: fadeIn 0.5s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Force display of phone input wrapper */
+.phone-input-wrapper {
+    min-height: 50px;
+    display: block;
+}
+
+/* Password Toggle */
+.password-field-wrapper input[type="password"],
+.password-field-wrapper input[type="text"] {
+    padding-right: 44px;
+}
+</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/phone-input.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/password-toggle.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 seller-register-page">
+  <div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-12 app-fade">
+      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+        Rejoignez <span class="gradient-text">Tekanayo</span>
+      </h1>
+      <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+        Créez votre boutique en ligne et commencez à vendre vos produits sur notre plateforme moderne.
+        Rejoignez une communauté de vendeurs prospères et développez votre business.
+      </p>
+    </div>
+
+    <!-- Étapes -->
+    <div class="flex justify-center mb-12 app-fade">
+      <div class="flex items-center space-x-4">
+        <div class="step-dot active" data-step="1">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="h-1 w-16 bg-gray-300 rounded"></div>
+        <div class="step-dot" data-step="2">
+          <i class="fas fa-store"></i>
+        </div>
+        <div class="h-1 w-16 bg-gray-300 rounded"></div>
+        <div class="step-dot" data-step="3">
+          <i class="fas fa-check"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12 app-fade">
+      <form action="{{ url_for('become_seller') }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Étape 1: Informations personnelles -->
+        <div class="step-content active" data-step="1">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <i class="fas fa-user-circle text-purple-600 mr-3"></i>
+            Informations personnelles
+          </h2>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-signature mr-1"></i>Prénom *
+              </label>
+              <input type="text" name="first_name" required
+                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-signature mr-1"></i>Nom *
+              </label>
+              <input type="text" name="last_name" required
+                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-envelope mr-1"></i>Email *
+              </label>
+              <input type="email" name="email" required
+                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-lock mr-1"></i>Mot de passe *
+              </label>
+              <input type="password" name="password" required
+                     class="password-toggle w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition pr-10"
+                     minlength="8">
+              <p class="text-xs text-gray-500 mt-1">Minimum 8 caractères.</p>
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-lock mr-1"></i>Confirmer le mot de passe *
+              </label>
+              <input type="password" name="confirm_password" required
+                     class="password-toggle w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition pr-10">
+            </div>
+
+            <!-- Phone Input Component -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-phone mr-1"></i>Téléphone *
+              </label>
+              <div class="phone-input-wrapper"
+                   data-country="CD"
+                   data-phone="">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Étape 2: Informations boutique -->
+        <div class="step-content hidden" data-step="2">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <i class="fas fa-store text-purple-600 mr-3"></i>
+            Informations de la boutique
+          </h2>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-store-alt mr-1"></i>Nom de la boutique *
+              </label>
+              <input type="text" name="shop_name" required
+                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-tag mr-1"></i>Niche de la boutique *
+              </label>
+              <select name="category_niche" id="category_niche" required
+                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+                <option value="">Sélectionnez votre niche</option>
+                {% for niche_code, niche_name in niches %}
+                <option value="{{ niche_code }}">{{ niche_name }}</option>
+                {% endfor %}
+              </select>
+              <p class="text-xs text-gray-500 mt-1">
+                <i class="fas fa-info-circle mr-1"></i>
+                La niche détermine les catégories de produits disponibles pour votre boutique
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-info-circle mr-1"></i>Description de la boutique *
+            </label>
+            <textarea name="shop_description" rows="4" required
+                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition resize-none"
+                      placeholder="Décrivez votre boutique, vos produits et votre mission..."></textarea>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-globe mr-1"></i>Site web (optionnel)
+              </label>
+              <input type="url" name="website"
+                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-link mr-1"></i>Nom de domaine personnalisé (optionnel)
+              </label>
+              <input type="text" name="custom_domain" placeholder="ex: maboutique.cd"
+                     pattern="^(?!-)(?:[a-z0-9-]+\.)+[a-z]{2,}$"
+                     title="Format attendu: domaine.tld (ex: maboutique.cd)"
+                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+              <p class="text-xs text-gray-500 mt-1">Un domaine ne peut appartenir qu'à une seule boutique.</p>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-image mr-1"></i>Logo de la boutique (optionnel)
+            </label>
+            <input type="file" name="logo" accept="image/*"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+          </div>
+        </div>
+
+        <!-- Étape 3: Documents à uploader -->
+        <div class="step-content hidden" data-step="3">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <i class="fas fa-upload text-purple-600 mr-3"></i>
+            Documents à fournir
+          </h2>
+
+          <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-6">
+            <div class="flex items-start">
+              <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mt-1 mr-3"></i>
+              <div>
+                <h3 class="font-semibold text-yellow-900 mb-2">Documents requis pour validation</h3>
+                <p class="text-yellow-800 text-sm mb-3">
+                  Pour activer votre boutique, vous devez fournir les documents suivants :
+                </p>
+                <ul class="text-yellow-800 text-sm space-y-2">
+                  <li class="flex items-start gap-2">
+                    <i class="fas fa-id-card mt-0.5"></i>
+                    <span><strong>Pièce d'identité :</strong> Carte d'identité ou Passeport (recto-verso)</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <i class="fas fa-file-alt mt-0.5"></i>
+                    <span><strong>Justificatif d'adresse :</strong> Facture eau/électricité ou attestation de résidence</span>
+                  </li>
+                </ul>
+                <p class="text-yellow-800 text-sm mt-4 font-semibold">
+                  ⏱️ Délai de validation : 24-48h après soumission
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <!-- Pièce d'identité -->
+            <div class="border border-gray-200 rounded-xl p-5 bg-gray-50">
+              <label class="block text-sm font-semibold text-gray-800 mb-3">
+                <i class="fas fa-id-card text-purple-600 mr-2"></i>
+                Pièce d'identité *
+              </label>
+              
+              <!-- Boutons d'upload -->
+              <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                <label class="flex-1 cursor-pointer">
+                  <input type="file" name="id_document" id="id_document" required
+                         accept="image/*,.pdf" capture="environment"
+                         class="hidden">
+                  <div class="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition">
+                    <i class="fas fa-camera text-purple-600 text-xl"></i>
+                    <span class="text-sm font-semibold text-gray-700">Prendre en photo</span>
+                  </div>
+                </label>
+                
+                <label class="flex-1 cursor-pointer">
+                  <input type="file" name="id_document_gallery" id="id_document_gallery"
+                         accept="image/*,.pdf"
+                         class="hidden">
+                  <div class="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition">
+                    <i class="fas fa-image text-gray-600 text-xl"></i>
+                    <span class="text-sm font-semibold text-gray-700">Choisir du fichier</span>
+                  </div>
+                </label>
+              </div>
+              
+              <p class="text-xs text-gray-500 mb-2">
+                <i class="fas fa-info-circle mr-1"></i>
+                Formats acceptés : JPG, PNG, PDF. Maximum 5MB.
+              </p>
+              
+              <!-- Aperçu -->
+              <div id="id_document_preview" class="hidden mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                <div class="flex items-start gap-3">
+                  <i class="fas fa-check-circle text-green-600 text-xl mt-0.5"></i>
+                  <div class="flex-1">
+                    <p class="text-sm font-semibold text-gray-800">Fichier sélectionné</p>
+                    <p class="text-xs text-gray-600 font-mono mt-1 break-all"></p>
+                    <p class="text-xs text-gray-500 mt-1"></p>
+                  </div>
+                  <button type="button" onclick="removeIdDocument()" class="text-red-600 hover:text-red-800">
+                    <i class="fas fa-times-circle text-xl"></i>
+                  </button>
+                </div>
+                <!-- Aperçu image -->
+                <img id="id_document_image" class="mt-3 max-h-48 w-full object-contain rounded-lg hidden">
+              </div>
+            </div>
+
+            <!-- Justificatif d'adresse -->
+            <div class="border border-gray-200 rounded-xl p-5 bg-gray-50">
+              <label class="block text-sm font-semibold text-gray-800 mb-3">
+                <i class="fas fa-file-alt text-purple-600 mr-2"></i>
+                Justificatif d'adresse *
+              </label>
+              
+              <!-- Boutons d'upload -->
+              <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                <label class="flex-1 cursor-pointer">
+                  <input type="file" name="address_document" id="address_document" required
+                         accept="image/*,.pdf" capture="environment"
+                         class="hidden">
+                  <div class="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition">
+                    <i class="fas fa-camera text-purple-600 text-xl"></i>
+                    <span class="text-sm font-semibold text-gray-700">Prendre en photo</span>
+                  </div>
+                </label>
+                
+                <label class="flex-1 cursor-pointer">
+                  <input type="file" name="address_document_gallery" id="address_document_gallery"
+                         accept="image/*,.pdf"
+                         class="hidden">
+                  <div class="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition">
+                    <i class="fas fa-image text-gray-600 text-xl"></i>
+                    <span class="text-sm font-semibold text-gray-700">Choisir du fichier</span>
+                  </div>
+                </label>
+              </div>
+              
+              <p class="text-xs text-gray-500 mb-2">
+                <i class="fas fa-info-circle mr-1"></i>
+                Formats acceptés : JPG, PNG, PDF. Maximum 5MB.
+              </p>
+              
+              <!-- Aperçu -->
+              <div id="address_document_preview" class="hidden mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                <div class="flex items-start gap-3">
+                  <i class="fas fa-check-circle text-green-600 text-xl mt-0.5"></i>
+                  <div class="flex-1">
+                    <p class="text-sm font-semibold text-gray-800">Fichier sélectionné</p>
+                    <p class="text-xs text-gray-600 font-mono mt-1 break-all"></p>
+                    <p class="text-xs text-gray-500 mt-1"></p>
+                  </div>
+                  <button type="button" onclick="removeAddressDocument()" class="text-red-600 hover:text-red-800">
+                    <i class="fas fa-times-circle text-xl"></i>
+                  </button>
+                </div>
+                <!-- Aperçu image -->
+                <img id="address_document_image" class="mt-3 max-h-48 w-full object-contain rounded-lg hidden">
+              </div>
+            </div>
+
+            <!-- Checkboxes -->
+            <div class="border-t border-gray-200 pt-4 space-y-3">
+              <div class="flex items-start">
+                <input type="checkbox" name="terms" required id="terms" class="mt-1 mr-3 h-4 w-4">
+                <label for="terms" class="text-sm text-gray-700">
+                  J'accepte les <a href="{{ url_for('tekanayo_portal_terms') }}" target="_blank" class="text-purple-600 hover:underline font-medium">conditions générales d'utilisation</a> *
+                </label>
+              </div>
+
+              <div class="flex items-start">
+                <input type="checkbox" name="data_processing" required id="data_processing" class="mt-1 mr-3 h-4 w-4">
+                <label for="data_processing" class="text-sm text-gray-700">
+                  J'autorise le traitement de mes données personnelles *
+                </label>
+              </div>
+
+              <div class="flex items-start">
+                <input type="checkbox" name="identity_certify" required id="identity_certify" class="mt-1 mr-3 h-4 w-4">
+                <label for="identity_certify" class="text-sm text-gray-700">
+                  Je certifie que les documents fournis sont authentiques et m'engage à fournir des informations véridiques *
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Boutons de navigation -->
+        <div class="flex justify-between items-center pt-8 border-t border-gray-200">
+          <button type="button" id="prevBtn" class="px-8 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-400 transition hidden">
+            <i class="fas fa-arrow-left mr-2"></i>Précédent
+          </button>
+
+          <div class="flex space-x-4">
+            <button type="button" id="nextBtn" class="px-8 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition">
+              Suivant <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+
+            <button type="submit" id="submitBtn" class="px-8 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition hidden">
+              <i class="fas fa-paper-plane mr-2"></i>Créer ma boutique
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+// Initialisation des variables
+const steps = [...document.querySelectorAll('.step-dot')];
+const stepContents = [...document.querySelectorAll('.step-content')];
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const submitBtn = document.getElementById('submitBtn');
+
+console.log('=== INITIALISATION FORMULAIRE ===');
+console.log('Steps trouvés:', steps.length);
+console.log('prevBtn:', prevBtn ? '✅ trouvé' : '❌ PAS TROUVÉ');
+console.log('nextBtn:', nextBtn ? '✅ trouvé' : '❌ PAS TROUVÉ');
+console.log('submitBtn:', submitBtn ? '✅ trouvé' : '❌ PAS TROUVÉ');
+
+let currentStep = 0;
+
+// Fonction de validation du téléphone pour l'étape 1
+
+window.validatePhoneInStep1 = function() {
+    console.log('=== Validation téléphone étape 1 ===');
+    
+    // Récupérer la valeur du phone input via l'instance automatique
+    const phoneInput = window.phoneInputs && window.phoneInputs[0];
+    if (phoneInput) {
+        const value = phoneInput.getValue();
+        console.log('Phone value from component:', value);
+        
+        if (!value.phoneNumber || value.phoneNumber.length !== 9) {
+            alert('Veuillez entrer un numéro de téléphone valide (9 chiffres).');
+            return false;
+        }
+        return true;
+    }
+    
+    // Fallback: vérifier l'input caché
+    const countryCode = document.querySelector('input[name="country_code"]');
+    const phoneNumber = document.querySelector('input[name="phone_number"]');
+    
+    if (phoneNumber && phoneNumber.value) {
+        const phone = phoneNumber.value.trim();
+        if (phone.length !== 9 || !/^\d+$/.test(phone)) {
+            alert('Veuillez entrer un numéro de téléphone valide (9 chiffres).');
+            return false;
+        }
+        return true;
+    }
+    
+    alert('Veuillez entrer votre numéro de téléphone.');
+    return false;
+};
+
+
+// Phone input - utilise l'instance créée automatiquement par phone-input.js
+// L'instance est accessible via window.phoneInputs[0]
+
+
+function validateVisibleFields(stepIndex) {
+    const panel = stepContents[stepIndex];
+    if (!panel) return true;
+    const fields = [...panel.querySelectorAll('input, select, textarea')]
+        .filter((f) => !f.disabled && f.type !== 'hidden');
+
+    for (const field of fields) {
+        if (!field.checkValidity()) {
+            field.reportValidity();
+            return false;
+        }
+    }
+    return true;
+}
+
+// Fonction de validation des champs de l'étape 1
+async function validateStep1() {
+    console.log('=== Validation étape 1 ===');
+    
+    const firstName = document.querySelector('input[name="first_name"]').value.trim();
+    const lastName = document.querySelector('input[name="last_name"]').value.trim();
+    const email = document.querySelector('input[name="email"]').value.trim();
+    const password = document.querySelector('input[name="password"]').value;
+    const confirmPassword = document.querySelector('input[name="confirm_password"]').value;
+
+    // Validation des champs requis
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+        alert('Veuillez remplir tous les champs obligatoires.');
+        return false;
+    }
+
+    // Validation de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        alert('Veuillez saisir une adresse email valide.');
+        return false;
+    }
+
+    // Validation du mot de passe
+    if (password.length < 8) {
+        alert('Le mot de passe doit contenir au moins 8 caractères.');
+        return false;
+    }
+
+    // Validation de la confirmation du mot de passe
+    if (password !== confirmPassword) {
+        alert('Les mots de passe ne correspondent pas.');
+        return false;
+    }
+
+    // Validation du téléphone
+    if (!window.validatePhoneInStep1()) {
+        return false;
+    }
+
+    // Validation de l'unicité de l'email
+    try {
+        const emailResponse = await fetch(`/api/check-email?email=${encodeURIComponent(email)}`);
+        const emailData = await emailResponse.json();
+        if (!emailData.available) {
+            alert('Cette adresse email est déjà utilisée par un autre vendeur.');
+            return false;
+        }
+    } catch (error) {
+        console.warn('Vérification email indisponible, validation finale côté serveur.', error);
+    }
+
+    return true;
+}
+
+// Fonction de validation des champs de l'étape 2
+async function validateStep2() {
+    console.log('=== Validation étape 2 ===');
+    
+    const shopName = document.querySelector('input[name="shop_name"]').value.trim();
+    const categoryNiche = document.querySelector('select[name="category_niche"]').value;
+    const shopDescription = document.querySelector('textarea[name="shop_description"]').value.trim();
+    const customDomain = (document.querySelector('input[name="custom_domain"]').value || '').trim().toLowerCase();
+
+    if (!shopName) {
+        alert('Veuillez entrer le nom de la boutique.');
+        return false;
+    }
+    
+    if (!categoryNiche) {
+        alert('Veuillez sélectionner la niche de votre boutique.');
+        return false;
+    }
+    
+    if (!shopDescription) {
+        alert('Veuillez entrer la description de la boutique.');
+        return false;
+    }
+
+    if (shopDescription.length < 10) {
+        alert('La description de la boutique doit contenir au moins 10 caractères.');
+        return false;
+    }
+
+    // Vérification du nom de boutique
+    try {
+        const shopResponse = await fetch(`/api/check-shop-name?name=${encodeURIComponent(shopName)}`);
+        if (shopResponse.ok) {
+            const shopData = await shopResponse.json();
+            if (!shopData.available) {
+                alert('Ce nom de boutique est déjà utilisé. Veuillez en choisir un autre.');
+                return false;
+            }
+        }
+    } catch (error) {
+        console.log('Vérification du nom de boutique non disponible');
+    }
+
+    // Vérification du domaine
+    if (customDomain) {
+        try {
+            const domainResponse = await fetch(`/api/check-custom-domain?domain=${encodeURIComponent(customDomain)}`);
+            if (domainResponse.ok) {
+                const domainData = await domainResponse.json();
+                if (!domainData.available) {
+                    alert('Ce nom de domaine est déjà utilisé.');
+                    return false;
+                }
+            }
+        } catch (error) {
+            console.log('Vérification du domaine non disponible');
+        }
+    }
+
+    console.log('Validation étape 2 réussie');
+    return true;
+}
+
+// Fonction de validation des champs de l'étape 3
+function validateStep3() {
+    console.log('=== Validation étape 3 ===');
+    
+    const idDocument = document.getElementById('id_document');
+    const idDocumentGallery = document.getElementById('id_document_gallery');
+    const addressDocument = document.getElementById('address_document');
+    const addressDocumentGallery = document.getElementById('address_document_gallery');
+    const terms = document.getElementById('terms');
+    const dataProcessing = document.getElementById('data_processing');
+    const identityCertify = document.getElementById('identity_certify');
+    
+    // Vérifier les fichiers
+    const hasIdDocument = (idDocument.files && idDocument.files[0]) || 
+                          (idDocumentGallery.files && idDocumentGallery.files[0]);
+    
+    const hasAddressDocument = (addressDocument.files && addressDocument.files[0]) || 
+                                (addressDocumentGallery.files && addressDocumentGallery.files[0]);
+    
+    if (!hasIdDocument) {
+        alert('Veuillez uploader votre pièce d\'identité (photo ou fichier).');
+        return false;
+    }
+    
+    if (!hasAddressDocument) {
+        alert('Veuillez uploader votre justificatif d\'adresse (photo ou fichier).');
+        return false;
+    }
+    
+    // Vérifier la taille des fichiers (max 5MB)
+    const maxFileSize = 5 * 1024 * 1024;
+    const idFile = idDocument.files[0] || idDocumentGallery.files[0];
+    const addressFile = addressDocument.files[0] || addressDocumentGallery.files[0];
+    
+    if (idFile.size > maxFileSize) {
+        alert('Le fichier de pièce d\'identité dépasse 5MB.');
+        return false;
+    }
+    
+    if (addressFile.size > maxFileSize) {
+        alert('Le fichier de justificatif d\'adresse dépasse 5MB.');
+        return false;
+    }
+    
+    // Vérifier les checkboxes
+    if (!terms.checked) {
+        alert('Vous devez accepter les conditions générales d\'utilisation.');
+        return false;
+    }
+    
+    if (!dataProcessing.checked) {
+        alert('Vous devez autoriser le traitement de vos données personnelles.');
+        return false;
+    }
+    
+    if (!identityCertify.checked) {
+        alert('Vous devez certifier que les documents fournis sont authentiques.');
+        return false;
+    }
+    
+    console.log('✅ Validation étape 3 réussie');
+    return true;
+}
+
+function updateSteps() {
+    steps.forEach((step, index) => {
+        step.classList.remove('active', 'completed');
+        if (index < currentStep) {
+            step.classList.add('completed');
+        } else if (index === currentStep) {
+            step.classList.add('active');
+        }
+    });
+
+    stepContents.forEach((content, index) => {
+        content.classList.toggle('hidden', index !== currentStep);
+    });
+
+    prevBtn.classList.toggle('hidden', currentStep === 0);
+    nextBtn.classList.toggle('hidden', currentStep === steps.length - 1);
+    submitBtn.classList.toggle('hidden', currentStep !== steps.length - 1);
+}
+
+// Gestion des événements
+nextBtn.addEventListener('click', async () => {
+    if (currentStep >= steps.length - 1) return;
+    if (!validateVisibleFields(currentStep)) return;
+
+    let isValid = false;
+
+    if (currentStep === 0) {
+        isValid = await validateStep1();
+    } else if (currentStep === 1) {
+        isValid = await validateStep2();
+    } else {
+        isValid = true;
+    }
+
+    if (isValid) {
+        currentStep++;
+        updateSteps();
+    }
+});
+
+prevBtn.addEventListener('click', () => {
+    if (currentStep > 0) {
+        currentStep--;
+        updateSteps();
+    }
+});
+
+// Initialisation
+updateSteps();
+</script>
+{% endblock %}

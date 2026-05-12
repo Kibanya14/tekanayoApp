@@ -1,0 +1,136 @@
+{% extends "admin/basee.html" %}
+
+{% block title %}Admins - Tekanayo{% endblock %}
+{% block header_title %}Gestion des Administrateurs{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+  <section class="xl:col-span-1 card-surface rounded-2xl p-5">
+    <h2 class="text-xl font-bold">Créer un admin plateforme</h2>
+    <form action="{{ url_for('admin_add_platform_admin') }}" method="POST" class="space-y-3 mt-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input required name="first_name" placeholder="Prénom" class="rounded-xl px-4 py-3 border w-full">
+      <input required name="last_name" placeholder="Nom" class="rounded-xl px-4 py-3 border w-full">
+      <input required type="email" name="email" placeholder="Email" class="rounded-xl px-4 py-3 border w-full">
+      <div class="phone-input-wrapper"
+           data-country="CD"
+           data-phone="">
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_products" checked> Gérer produits</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_orders" checked> Gérer commandes</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_deliverers" checked> Gérer livreurs</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_clients" checked> Gérer clients</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_categories" checked> Gérer catégories</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="view_tasks"> Voir tâches</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_sellers"> Gérer vendeurs</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_subscriptions"> Gérer abonnements</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_announcements" checked> Gérer annonces</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_admins"> Gérer admins</label>
+        <label class="rounded-xl border p-3 bg-slate-50 block"><input type="checkbox" name="permissions" value="manage_settings"> Gérer paramètres</label>
+      </div>
+      <button class="w-full rounded-xl bg-blue-700 text-white py-3">Créer admin</button>
+    </form>
+  </section>
+
+  <section class="xl:col-span-2 card-surface rounded-2xl p-5">
+    <h2 class="text-xl font-bold mb-4">Liste des admins</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b border-[var(--border)]">
+            <th class="py-2 pr-2">Nom</th>
+            <th class="py-2 pr-2">Email</th>
+            <th class="py-2 pr-2">Rôle</th>
+            <th class="py-2 pr-2">Statut</th>
+            <th class="py-2">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in admins %}
+          <tr class="border-b border-[var(--border)]">
+            <td class="py-3 pr-2">{{ a.first_name }} {{ a.last_name }}</td>
+            <td class="py-3 pr-2">{{ a.email }}</td>
+            <td class="py-3 pr-2">{{ a.role }}</td>
+            <td class="py-3 pr-2">{{ 'Actif' if a.is_active else 'Inactif' }}</td>
+            <td class="py-3">
+              {% if current_user.role == 'super_admin' and a.id != current_user.id %}
+              <div class="flex gap-2">
+                <form action="{{ url_for('admin_toggle_platform_admin', admin_id=a.id) }}" method="POST" class="inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="px-3 py-1 rounded-lg border text-xs hover:bg-gray-50" title="Basculer statut">Toggle</button>
+                </form>
+                <button class="px-3 py-1 rounded-lg border text-xs hover:bg-gray-50" title="Modifier permissions" onclick="openEditModal({{ a.id }}, '{{ a.first_name }} {{ a.last_name }}', '{{ a.permissions or '' }}')">Edit Perms</button>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="py-4 text-center text-gray-500">Aucun admin enregistré.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Modal d'édition des permissions -->
+<div id="editPermissionsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <h3 class="text-lg font-bold mb-4">Modifier les permissions de <span id="adminName"></span></h3>
+        <form id="editPermissionsForm" method="POST" action="">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" id="editAdminId" name="admin_id">
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            {% for perm, label in admin_permission_labels.items() %}
+            <label class="flex items-center gap-2">
+              <input type="checkbox" name="permissions" value="{{ perm }}" class="permission-checkbox">
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="flex justify-end gap-3">
+            <button type="button" onclick="closeEditModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Annuler</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Sauvegarder</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openEditModal(adminId, adminName, currentPermissions) {
+  document.getElementById('adminName').textContent = adminName;
+  document.getElementById('editAdminId').value = adminId;
+  document.getElementById('editPermissionsForm').action = `/admin/admins/${adminId}/edit-permissions`;
+  
+  // Reset all checkboxes
+  document.querySelectorAll('.permission-checkbox').forEach(cb => cb.checked = false);
+  
+  // Check current permissions
+  if (currentPermissions) {
+    const perms = currentPermissions.split(',').map(p => p.trim());
+    perms.forEach(perm => {
+      const checkbox = document.querySelector(`.permission-checkbox[value="${perm}"]`);
+      if (checkbox) checkbox.checked = true;
+    });
+  }
+  
+  document.getElementById('editPermissionsModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('editPermissionsModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('editPermissionsModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeEditModal();
+  }
+});
+</script>
+{% endblock %}

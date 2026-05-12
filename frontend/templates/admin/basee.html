@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin - {{ shop_settings.shop_name if shop_settings else 'Tekanayo App' }}{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% set _fav_logo = shop_settings.admin_logo if shop_settings and shop_settings.admin_logo else (shop_settings.shop_logo if shop_settings and shop_settings.shop_logo else None) %}
+    <link rel="icon" href="{{ media_url(_fav_logo) if _fav_logo else media_url('default_logo.svg') }}">
+
+    <!-- Password Toggle CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/password-toggle.css') }}">
+
+    <!-- Phone Input CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/phone-input.css') }}">
+
+    {% block styles %}{% endblock %}
+
+    <style>
+        :root {
+            --bg: #eef1f7;
+            --bg-elev: #ffffff;
+            --sidebar: #2343b5;
+            --sidebar-hover: #2e4fc4;
+            --text: #1f2937;
+            --text-soft: #6b7280;
+            --card: #ffffff;
+            --border: #dfe5f2;
+            --accent: #3359d4;
+            --accent-2: #5a79e6;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Nunito", "Segoe UI", "Noto Sans", sans-serif;
+        }
+        .sidebar {
+            transition: all 0.3s ease;
+            background: linear-gradient(180deg, #2343b5 0%, #1f3ca4 100%);
+            border-right: 1px solid #1d3795;
+        }
+        .sidebar.collapsed { width: 70px; }
+        .sidebar.collapsed .sidebar-text { display: none; }
+        .main-content { transition: all 0.3s ease; height: 100vh; overflow-y: auto; }
+        .card-surface {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            box-shadow: 0 8px 18px rgba(30, 64, 175, 0.06);
+        }
+        .currency-select {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 6px 10px;
+            color: var(--text);
+        }
+        .logo-round { height: 48px; width: 48px; border-radius: 999px; object-fit: cover; }
+        .toggle-btn { border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; background: #fff; color: var(--text); }
+        .nav-badge { background: #ff4b84; color: #fff; font-size: 11px; padding: 3px 7px; border-radius: 999px; margin-left: 8px; line-height: 1; }
+        .sidebar nav a { border: 1px solid transparent; }
+        .sidebar nav a:hover { background: var(--sidebar-hover) !important; border-color: #ffffff22; }
+        .sidebar nav a.bg-purple-600 {
+            background: #ffffff !important;
+            color: #2343b5 !important;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+        }
+        .admin-topbar {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            border-radius: 0 0 16px 16px;
+        }
+        .admin-title { color: var(--text); letter-spacing: 0.2px; }
+        .soft-text { color: var(--text-soft); }
+        .search-shell {
+            background: #f7f9ff;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--text);
+        }
+        .search-shell input::placeholder { color: #9aa4bf; }
+        .menu-panel {
+            background: #fff;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .menu-panel a { color: var(--text-soft); }
+        .menu-panel a:hover { background: #eef2ff; color: #1f2937; }
+        .role-pill { border: 1px solid #dbe4ff; background: #eff4ff; color: #2343b5; }
+        .flash-dark { background: #fff; border: 1px solid var(--border); color: var(--text); }
+    </style>
+
+</head>
+<body data-theme="">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar text-white w-72 flex flex-col min-h-screen justify-between">
+            <!-- En-tête Sidebar -->
+            <div class="p-4 border-b border-white/15 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    {% set admin_logo_file = shop_settings.admin_logo if shop_settings and shop_settings.admin_logo else (shop_settings.shop_logo if shop_settings and shop_settings.shop_logo else None) %}
+                    {% if admin_logo_file %}
+                    <img src="{{ media_url(admin_logo_file) }}" alt="Logo" class="logo-round" onerror="this.style.display='none'; this.nextElementSibling && (this.nextElementSibling.style.display='inline-block');">
+                    <i class="fas fa-book text-purple-300 text-2xl" style="display:none;"></i>
+                    {% else %}
+                    <i class="fas fa-book text-purple-300 text-2xl"></i>
+                    {% endif %}
+                    <span class="font-bold text-lg sidebar-text">
+                        {{ shop_settings.shop_name if shop_settings else 'Tekanayo App' }}
+                    </span>
+                </div>
+                <button id="sidebarToggle" class="text-blue-100 hover:text-white">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <!-- Navigation Sidebar -->
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                {% set is_platform_super_admin = current_user.is_authenticated and current_user.role == 'super_admin' %}
+                <a href="{{ url_for('tekanayo_admin_panel') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_panel' %}bg-purple-600 text-white{% else %}text-blue-100 hover:text-white{% endif %} transition">
+                    <i class="fas fa-tachometer-alt w-6 text-center"></i>
+                    <span class="sidebar-text">Tableau de Bord</span>
+                </a>
+
+                {% set can_view_products = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_products')) %}
+                <a href="{{ url_for('tekanayo_admin_products') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_products' %}bg-purple-600 text-white{% else %}{% if can_view_products %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_view_products %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_view_products %}aria-disabled="true" title="Accès restreint"{% endif %}>
+                    <i class="fas fa-boxes w-6 text-center"></i>
+                    <span class="sidebar-text">Produits{% if not can_view_products %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}</span>
+                </a>
+
+                {% set can_view_orders = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_orders')) %}
+                <a href="{{ url_for('tekanayo_admin_orders') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_orders' %}bg-purple-600 text-white{% else %}{% if can_view_orders %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_view_orders %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_view_orders %}aria-disabled="true" title="Accès restreint"{% endif %}>
+                    <i class="fas fa-shopping-cart w-6 text-center"></i>
+                    <span class="sidebar-text flex items-center gap-2">
+                        Commandes{% if not can_view_orders %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}
+                        {% if pending_orders_count %}
+                        <span class="nav-badge">{{ pending_orders_count }}</span>
+                        {% endif %}
+                    </span>
+                </a>
+
+                {% set can_manage_deliverers = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_deliverers')) %}
+                <a href="{{ url_for('tekanayo_admin_deliverers') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_deliverers' %}bg-purple-600 text-white{% else %}{% if can_manage_deliverers %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_manage_deliverers %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_manage_deliverers %}aria-disabled="true" title="Accès restreint"{% endif %}>
+                    <i class="fas fa-truck w-6 text-center"></i>
+                    <span class="sidebar-text">Livreurs{% if not can_manage_deliverers %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}</span>
+                </a>
+
+                {% set can_view_clients = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_clients')) %}
+                <a href="{{ url_for('tekanayo_admin_clients') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_clients' %}bg-purple-600 text-white{% else %}{% if can_view_clients %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_view_clients %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_view_clients %}aria-disabled="true" title="Accès restreint"{% endif %}>
+                    <i class="fas fa-user-friends w-6 text-center"></i>
+                    <span class="sidebar-text">Clients{% if not can_view_clients %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}</span>
+                </a>
+
+                {% set can_view_categories = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_categories')) %}
+                <a href="{{ url_for('tekanayo_admin_categories') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_categories' %}bg-purple-600 text-white{% else %}{% if can_view_categories %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_view_categories %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_view_categories %}aria-disabled="true" title="Accès restreint"{% endif %}>
+                    <i class="fas fa-tags w-6 text-center"></i>
+                    <span class="sidebar-text">Catégories{% if not can_view_categories %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}</span>
+                </a>
+
+                {% set can_view_tasks = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('view_tasks')) %}
+                <a href="{{ url_for('tekanayo_admin_tasks') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_tasks' %}bg-purple-600 text-white{% else %}{% if can_view_tasks %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_view_tasks %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_view_tasks %}aria-disabled="true" title="Accès restreint"{% endif %}>
+                    <i class="fas fa-clipboard-list w-6 text-center"></i>
+                    <span class="sidebar-text">Tâches{% if not can_view_tasks %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}</span>
+                </a>
+
+                {% set can_manage_admins = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_admins')) %}
+                <a href="{{ url_for('tekanayo_admin_admins') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_admins' %}bg-purple-600 text-white{% else %}{% if can_manage_admins %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_manage_admins %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_manage_admins %}aria-disabled="true" title="Accès réservé à l'Administrateur Principal"{% endif %}>
+                    <i class="fas fa-users-cog w-6 text-center"></i>
+                    <span class="sidebar-text">Administrateurs{% if not can_manage_admins %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}</span>
+                </a>
+
+                {% set can_manage_sellers = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_sellers')) %}
+                <a href="{{ url_for('tekanayo_admin_sellers') }}"
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_sellers' %}bg-purple-600 text-white{% else %}{% if can_manage_sellers %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_manage_sellers %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_manage_sellers %}aria-disabled="true" title="Accès réservé à l'Administrateur Principal"{% endif %}>
+                    <i class="fas fa-store w-6 text-center"></i>
+                    <span class="sidebar-text">Vendeurs{% if not can_manage_sellers %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}</span>
+                </a>
+
+                {% set can_manage_announcements = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_announcements')) %}
+                <a href="{{ url_for('tekanayo_admin_announcements') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_announcements' %}bg-purple-600 text-white{% else %}{% if can_manage_announcements %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_manage_announcements %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_manage_announcements %}aria-disabled="true" title="Accès restreint"{% endif %}>
+                    <i class="fas fa-bullhorn w-6 text-center"></i>
+                    <span class="sidebar-text flex items-center gap-2">
+                        Communications{% if not can_manage_announcements %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}
+                        {% if forum_unread_count %}
+                        <span class="nav-badge">{{ forum_unread_count }}</span>
+                        {% endif %}
+                    </span>
+                </a>
+
+                {% if is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_admins')) %}
+                <a href="{{ url_for('tekanayo_admin_access_requests') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_access_requests' %}bg-purple-600 text-white{% else %}text-blue-100 hover:text-white{% endif %} transition">
+                    <i class="fas fa-envelope-open-text w-6 text-center"></i>
+                    <span class="sidebar-text">Demandes d'accès {% if access_request_count and access_request_count > 0 %}<span class="ml-2 inline-block text-xs bg-yellow-100 text-yellow-800 px-2 rounded">{{ access_request_count }}</span>{% endif %}</span>
+                </a>
+                {% endif %}
+
+                {% set can_access_settings = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_settings')) %}
+                <a href="{{ url_for('tekanayo_admin_settings') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg {% if request.endpoint == 'tekanayo_admin_settings' %}bg-purple-600 text-white{% else %}{% if can_access_settings %}text-blue-100 hover:text-white{% else %}text-blue-200{% endif %}{% endif %} transition {% if not can_access_settings %}opacity-50 cursor-not-allowed inactive-feature{% endif %}"
+                   {% if not can_access_settings %}aria-disabled="true" title="Accès réservé à l'Administrateur Principal"{% endif %}>
+                    <i class="fas fa-cog w-6 text-center"></i>
+                    <span class="sidebar-text">Paramètres{% if not can_access_settings %} <span class="ml-2 inline-block text-xs bg-gray-600 text-white px-2 rounded">Inactif</span>{% endif %}</span>
+                </a>
+
+                <a href="{{ url_for('tekanayo_portal') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg text-blue-100 hover:text-white transition border-t border-white/15 mt-4">
+                    <i class="fas fa-store w-6 text-center"></i>
+                    <span class="sidebar-text">Voir le Portail</span>
+                </a>
+
+                <a href="{{ url_for('tekanayo_admin_logout') }}" 
+                   class="flex items-center space-x-3 p-3 rounded-lg text-red-400 hover:bg-red-900 hover:text-red-300 transition">
+                    <i class="fas fa-sign-out-alt w-6 text-center"></i>
+                    <span class="sidebar-text">Déconnexion</span>
+                </a>
+            </nav>
+            <!-- Legal / footer info in sidebar -->
+            {% if request.endpoint != 'forum' %}
+            <div class="p-4 border-t border-white/15 text-xs text-blue-100 leading-relaxed break-words whitespace-normal">
+                <p>© 2026 Tekanayo Administration.</p>
+                <p>Propulsé par Esperdigi. Tous droits réservés.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Contenu Principal -->
+        {% set can_import_catalog = is_platform_super_admin or (current_user.is_authenticated and current_user.has_permission is defined and current_user.has_permission('manage_announcements')) %}
+        <div class="main-content flex-1 flex flex-col overflow-hidden">
+            <!-- En-tête -->
+            <header class="admin-topbar shadow-sm">
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <h1 class="text-2xl font-bold admin-title whitespace-nowrap">{% block header_title %}Administration{% endblock %}</h1>
+                        <div class="search-shell hidden lg:flex items-center gap-2 px-3 py-2 w-full max-w-xl">
+                            <i class="fas fa-search text-blue-500"></i>
+                            <input type="text" placeholder="Rechercher..." class="bg-transparent w-full focus:outline-none text-sm">
+                        </div>
+                        <form action="{{ url_for('set_currency') }}" method="POST" class="currency-select hidden md:flex items-center gap-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <i class="fas fa-coins text-yellow-500"></i>
+                            <select name="currency" onchange="this.form.submit()" class="bg-transparent focus:outline-none text-sm">
+                                {% for cur in available_currencies %}
+                                    <option value="{{ cur }}" {% if cur == current_currency %}selected{% endif %}>{{ cur }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </div>
+                    <div class="flex items-center space-x-3 pl-3">
+                        {% if can_import_catalog %}
+                        <a href="{{ url_for('tekanayo_admin_announcements') }}" class="hidden xl:inline-flex items-center gap-2 bg-white border border-[var(--border)] rounded-full px-3 py-2 text-xs text-blue-700 hover:bg-blue-50">
+                            <i class="fas fa-bullhorn"></i>
+                            Publier annonce
+                        </a>
+                        {% else %}
+                        <span data-feature="Publier annonce" class="inactive-feature inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-xs border border-gray-200">Publier annonce</span>
+                        {% endif %}
+                        <span class="soft-text hidden md:inline">Bonjour, {{ current_user.first_name }}!</span>
+                        <div class="relative group">
+                            <button type="button" class="h-10 w-10 rounded-full border border-[var(--border)] overflow-hidden flex items-center justify-center bg-white">
+                                {% if current_user.profile_picture and current_user.profile_picture != 'default_profile.png' %}
+                                <img src="{{ media_url(current_user.profile_picture) }}" alt="Profil" class="h-full w-full object-cover" onerror="this.style.display='none'; this.parentElement.querySelector('.fallback-user-icon')?.classList.remove('hidden');">
+                                <i class="fas fa-user text-blue-500 fallback-user-icon hidden"></i>
+                                {% else %}
+                                <i class="fas fa-user text-blue-500"></i>
+                                {% endif %}
+                            </button>
+                            <div class="menu-panel absolute right-0 mt-2 w-52 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-20">
+                                <a href="{{ url_for('tekanayo_admin_profile') }}" class="flex items-center px-4 py-3 text-sm transition">
+                                    <i class="fas fa-user-circle mr-2 text-purple-500"></i> Profil
+                                </a>
+                                <a href="{{ url_for('tekanayo_admin_about') }}" class="flex items-center px-4 py-3 text-sm transition">
+                                    <i class="fas fa-circle-info mr-2 text-purple-500"></i> À propos
+                                </a>
+                                <div class="border-t border-[var(--border)]"></div>
+                                <a href="{{ url_for('tekanayo_admin_logout') }}" class="flex items-center px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition">
+                                    <i class="fas fa-sign-out-alt mr-2"></i> Déconnexion
+                                </a>
+                            </div>
+                        </div>
+                        {% if is_platform_super_admin %}
+                        <span class="role-pill px-3 py-1 rounded-full text-sm font-semibold">
+                            Administrateur Principal
+                        </span>
+                        {% else %}
+                        <span class="role-pill px-3 py-1 rounded-full text-sm font-semibold">
+                            Admin
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </header>
+
+            <!-- Messages Flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="p-4 space-y-2">
+                        {% for category, message in messages %}
+                        <div class="p-4 rounded-lg flash-dark flash-message {% if category == 'error' %}border-red-300 text-red-700{% else %}border-emerald-300 text-emerald-700{% endif %}">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas {% if category == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button onclick="this.parentElement.parentElement.remove()" class="text-gray-500 hover:text-gray-700">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Contenu -->
+            <main class="flex-1 overflow-y-auto p-6">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Toggle Sidebar
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            
+            sidebar.classList.toggle('collapsed');
+            if (sidebar.classList.contains('collapsed')) {
+                mainContent.style.marginLeft = '70px';
+            } else {
+                mainContent.style.marginLeft = '0';
+            }
+        });
+
+        // Auto-suppression des messages flash
+        setTimeout(() => {
+            const flashes = document.querySelectorAll('.flash-message');
+            flashes.forEach(flash => {
+                flash.style.transition = 'opacity 0.5s ease';
+                flash.style.opacity = '0';
+                setTimeout(() => flash.remove(), 500);
+            });
+        }, 5000);
+
+        // Thème sombre/clair
+        // Thème : aucune bascule (bouton supprimé), mais on laisse la classe si déjà stockée
+        try {
+            const saved = localStorage.getItem('manga-theme');
+            if (saved === 'dark') document.body.classList.add('dark');
+        } catch(e) {}
+
+        // Géolocalisation (boutons avec data-geo-btn)
+        function initGeoWidgets() {
+            document.querySelectorAll('[data-geo-btn]').forEach(btn => {
+                if (btn.dataset.geoBound) return;
+                btn.dataset.geoBound = '1';
+                const target = document.getElementById(btn.dataset.geoTarget);
+                const latEl = document.getElementById(btn.dataset.geoLat);
+                const lonEl = document.getElementById(btn.dataset.geoLon);
+                const labelEl = document.getElementById(btn.dataset.geoLabel);
+                const statusEl = document.getElementById(btn.dataset.geoStatus);
+                const mapFrame = document.getElementById(btn.dataset.geoMap);
+                const mapWrapper = mapFrame ? mapFrame.parentElement : null;
+
+                const setStatus = (msg, isError=false) => {
+                    if (!statusEl) return;
+                    statusEl.textContent = msg;
+                    statusEl.className = `text-xs ${isError ? 'text-red-600' : 'text-gray-600'}`;
+                };
+
+                const setCoords = (lat, lon, label='') => {
+                    if (latEl) latEl.value = lat;
+                    if (lonEl) lonEl.value = lon;
+                    if (labelEl) labelEl.value = label || (target ? target.value : '');
+                    if (mapFrame) {
+                        mapFrame.src = `https://www.google.com/maps?q=${lat},${lon}&z=15&output=embed`;
+                        mapWrapper && mapWrapper.classList.remove('hidden');
+                    }
+                    setStatus('Position détectée.');
+                };
+
+                btn.addEventListener('click', () => {
+                    if (!navigator.geolocation) {
+                        setStatus('La géolocalisation n’est pas supportée.', true);
+                        return;
+                    }
+                    setStatus('Recherche de votre position...');
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            const { latitude, longitude } = pos.coords;
+                            setCoords(latitude.toFixed(6), longitude.toFixed(6));
+                        },
+                        () => setStatus('Impossible de récupérer votre position.', true),
+                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+                    );
+                });
+            });
+        }
+        document.addEventListener('DOMContentLoaded', initGeoWidgets);
+
+        // Ajout automatique d'icônes Font Awesome sur boutons, entêtes et labels
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnMap = [
+                { keys: ['ajouter','add','nouveau','créer','create'], icon: 'fa-plus' },
+                { keys: ['modifier','edit'], icon: 'fa-pen' },
+                { keys: ['supprimer','delete'], icon: 'fa-trash' },
+                { keys: ['enregistrer','sauver','save'], icon: 'fa-save' },
+                { keys: ['valider','submit','appliquer'], icon: 'fa-check-circle' },
+                { keys: ['assigner','affecter'], icon: 'fa-share-square' },
+                { keys: ['payer','payée','payé','payout'], icon: 'fa-money-bill-wave' },
+                { keys: ['facture','invoice','pdf'], icon: 'fa-file-pdf' },
+                { keys: ['filtrer','filter'], icon: 'fa-filter' },
+                { keys: ['rechercher','search'], icon: 'fa-search' },
+                { keys: ['connexion','login'], icon: 'fa-sign-in-alt' },
+                { keys: ['déconnexion','logout'], icon: 'fa-sign-out-alt' }
+            ];
+
+            const thMap = [
+                { keys: ['commande','order'], icon: 'fa-receipt' },
+                { keys: ['client','user'], icon: 'fa-user' },
+                { keys: ['montant','prix','total'], icon: 'fa-coins' },
+                { keys: ['statut','status'], icon: 'fa-info-circle' },
+                { keys: ['date'], icon: 'fa-clock' },
+                { keys: ['localisation','adresse'], icon: 'fa-location-dot' },
+                { keys: ['actions'], icon: 'fa-ellipsis-h' },
+                { keys: ['livreur','delivery'], icon: 'fa-truck' },
+                { keys: ['commission'], icon: 'fa-piggy-bank' }
+            ];
+
+            const labelMap = [
+                { keys: ['nom','name'], icon: 'fa-id-badge' },
+                { keys: ['prénom'], icon: 'fa-user' },
+                { keys: ['email','e-mail'], icon: 'fa-envelope' },
+                { keys: ['téléphone','phone'], icon: 'fa-phone' },
+                { keys: ['adresse'], icon: 'fa-map-marker-alt' },
+                { keys: ['mot de passe','password'], icon: 'fa-lock' },
+                { keys: ['statut','status'], icon: 'fa-info-circle' },
+                { keys: ['note'], icon: 'fa-sticky-note' }
+            ];
+
+            const matchIcon = (text, map) => {
+                const lower = (text || '').toLowerCase();
+                for (const m of map) {
+                    if (m.keys.some(k => lower.includes(k))) return m.icon;
+                }
+                return null;
+            };
+
+            const addIcon = (el, icon, pos='prepend') => {
+                if (!icon || el.dataset.iconApplied) return;
+                const hasExisting = el.querySelector('i.fas, i.fa-solid, i.fa, svg');
+                if (hasExisting) return;
+                if (el.querySelector('img')) return;
+                const i = document.createElement('i');
+                i.className = `fas ${icon} mr-2 text-gray-600`;
+                if (pos === 'append') {
+                    el.appendChild(i);
+                } else {
+                    el.prepend(i);
+                }
+                el.dataset.iconApplied = '1';
+            };
+
+            document.querySelectorAll('button, input[type="submit"], input[type="button"], a[role="button"]').forEach(el => {
+                const text = el.innerText || el.value || '';
+                const icon = text.trim() ? matchIcon(text, btnMap) : null;
+                addIcon(el, icon || 'fa-circle', 'prepend');
+            });
+
+            document.querySelectorAll('th').forEach(th => {
+                const text = th.innerText || '';
+                const icon = matchIcon(text, thMap);
+                addIcon(th, icon, 'prepend');
+            });
+
+            document.querySelectorAll('label').forEach(label => {
+                const text = label.innerText || '';
+                const icon = matchIcon(text, labelMap);
+                addIcon(label, icon, 'prepend');
+            });
+        });
+
+    </script>
+
+    <!-- Access request modal for inactive features -->
+    <div id="accessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold mb-2">Accès restreint</h3>
+            <p id="accessModalMessage" class="text-sm text-gray-700 mb-4">Vous n'avez pas l'autorisation d'accéder à cette fonctionnalité. Contactez l'Administrateur Principal pour demander l'accès.</p>
+
+            <form id="accessRequestForm" method="POST" action="{{ url_for('admin_request_access') }}" class="flex justify-end space-x-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="feature" id="accessFeatureInput" value="">
+                <button type="button" id="accessModalClose" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Fermer</button>
+                <button type="submit" id="requestAccessBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Demander l'accès</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Intercept clicks on elements marked as inactive-feature and show modal
+        document.addEventListener('click', function(e) {
+            const el = e.target.closest && e.target.closest('.inactive-feature');
+            if (el) {
+                e.preventDefault();
+                const modal = document.getElementById('accessModal');
+                const msg = document.getElementById('accessModalMessage');
+                const featureInput = document.getElementById('accessFeatureInput');
+                // Try to derive a friendly feature name
+                let featureName = '';
+                // Prefer data-feature attribute, then innerText, then title
+                if (el.dataset && el.dataset.feature) featureName = el.dataset.feature;
+                if (!featureName) featureName = (el.innerText || el.getAttribute('title') || '').trim();
+                if (featureName) {
+                    msg.textContent = `Accès restreint — vous n'êtes pas autorisé à utiliser : "${featureName}". Contactez l'Administrateur Principal pour demander l'accès.`;
+                    featureInput.value = featureName;
+                } else {
+                    msg.textContent = "Vous n'avez pas l'autorisation d'accéder à cette fonctionnalité. Contactez l'Administrateur Principal pour demander l'accès.";
+                    featureInput.value = '';
+                }
+                modal.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('accessModalClose').addEventListener('click', function() {
+            document.getElementById('accessModal').classList.add('hidden');
+        });
+    </script>
+
+    <!-- Password Toggle JS -->
+    <script src="{{ url_for('static', filename='js/password-toggle.js') }}"></script>
+
+    <!-- Phone Input JS - COUNTRIES_DATA injection -->
+    <script>
+    window.COUNTRIES_DATA = [
+        {% for code, name, dial_code in countries_with_dial_codes() %}
+        ['{{ code }}', '{{ get_country_flag(code) }}', '{{ name }}', '{{ dial_code }}'],
+        {% endfor %}
+    ];
+    </script>
+    <script src="{{ url_for('static', filename='js/phone-input.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

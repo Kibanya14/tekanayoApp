@@ -1,0 +1,336 @@
+/**
+ * Phone Input Component Styles
+ * Professional UI for country flag + dial code + phone number input
+ * Strict 9-digit validation with visual feedback
+ * 
+ * @author TekanayoApp Team
+ * @version 2.0.0
+ */
+
+/* ===== Phone Input Wrapper ===== */
+.phone-input-wrapper {
+    position: relative;
+}
+
+/* ===== Phone Input Container ===== */
+.phone-input-container {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.phone-input-container:focus-within {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+}
+
+.phone-input-container.valid {
+    border-color: #10b981;
+}
+
+.phone-input-container.valid:focus-within {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.phone-input-container.invalid {
+    border-color: #ef4444;
+}
+
+.phone-input-container.invalid:focus-within {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+/* ===== Country Selector (Flag + Dial Code) ===== */
+.phone-country-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border-right: 2px solid #e2e8f0;
+    min-width: 110px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    user-select: none;
+}
+
+.phone-country-selector:hover {
+    background: #f1f5f9;
+}
+
+.phone-country-flag {
+    font-size: 24px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.phone-dial-code {
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.phone-country-arrow {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-left: auto;
+    transition: transform 0.2s ease;
+}
+
+.phone-input-container:focus-within .phone-country-arrow {
+    transform: rotate(180deg);
+}
+
+/* ===== Country Dropdown (Custom) ===== */
+.phone-country-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.phone-country-dropdown.open {
+    display: block;
+    animation: dropdownSlide 0.2s ease;
+}
+
+@keyframes dropdownSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.phone-country-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.phone-country-option:hover {
+    background: #f1f5f9;
+}
+
+.phone-country-option.selected {
+    background: #ede9fe;
+    color: #7c3aed;
+}
+
+.phone-country-option-flag {
+    font-size: 20px;
+}
+
+.phone-country-option-name {
+    flex: 1;
+    font-size: 14px;
+    color: #1e293b;
+}
+
+.phone-country-option-dial {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* ===== Phone Number Input ===== */
+.phone-number-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-family: inherit;
+    background: transparent;
+    color: #1e293b;
+    letter-spacing: 0.5px;
+}
+
+.phone-number-input::placeholder {
+    color: #94a3b8;
+}
+
+.phone-number-input:focus {
+    outline: none;
+}
+
+/* Remove spinner buttons for number input */
+.phone-number-input::-webkit-inner-spin-button,
+.phone-number-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.phone-number-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* ===== Character Counter ===== */
+.phone-char-counter {
+    position: absolute;
+    right: 12px;
+    bottom: -20px;
+    font-size: 11px;
+    color: #94a3b8;
+    transition: color 0.2s ease;
+}
+
+.phone-input-container.valid .phone-char-counter {
+    color: #10b981;
+}
+
+.phone-input-container.invalid .phone-char-counter {
+    color: #ef4444;
+}
+
+/* ===== Validation Messages ===== */
+.phone-validation-message {
+    font-size: 12px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: all 0.2s ease;
+}
+
+.phone-validation-message.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.phone-validation-message.error {
+    color: #ef4444;
+}
+
+.phone-validation-message.success {
+    color: #10b981;
+}
+
+/* ===== Disabled State ===== */
+.phone-input-container.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+    background: #f1f5f9;
+}
+
+/* ===== Read-only State ===== */
+.phone-input-container.readonly {
+    background: #f8fafc;
+    cursor: not-allowed;
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 640px) {
+    .phone-input-container {
+        flex-direction: column;
+        border-radius: 12px;
+    }
+
+    .phone-country-selector {
+        border-right: none;
+        border-bottom: 2px solid #e2e8f0;
+        border-radius: 12px 12px 0 0;
+        min-width: 100%;
+        justify-content: center;
+    }
+
+    .phone-number-input {
+        text-align: center;
+        padding: 16px;
+    }
+}
+
+/* ===== Dark Mode Support (Optional) ===== */
+@media (prefers-color-scheme: dark) {
+    .phone-input-container {
+        background: #1e293b;
+        border-color: #334155;
+    }
+
+    .phone-country-selector {
+        background: #0f172a;
+        border-right-color: #334155;
+    }
+
+    .phone-country-selector:hover {
+        background: #1e293b;
+    }
+
+    .phone-dial-code {
+        color: #cbd5e1;
+    }
+
+    .phone-number-input {
+        color: #f1f5f9;
+    }
+
+    .phone-number-input::placeholder {
+        color: #64748b;
+    }
+}
+
+/* ===== Animation for Invalid State ===== */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.phone-input-container.invalid.shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* ===== Label Styles ===== */
+.phone-input-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
+.phone-input-label i {
+    color: #7c3aed;
+    font-size: 16px;
+}
+
+/* ===== Helper Text ===== */
+.phone-helper-text {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.phone-helper-text i {
+    font-size: 10px;
+}

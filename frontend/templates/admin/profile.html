@@ -1,0 +1,99 @@
+{% extends "admin/basee.html" %}
+{% block title %}Profil Admin{% endblock %}
+{% block header_title %}Profil Administrateur Tekanayo{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+  <section class="card-surface rounded-2xl p-5 xl:col-span-1">
+    <h2 class="text-xl font-bold mb-4"><i class="fas fa-id-badge text-indigo-600 mr-2"></i>Photo de profil</h2>
+    <div class="flex flex-col items-center text-center">
+      <img id="profilePreview" src="{{ media_url(current_user.profile_picture) if (current_user.profile_picture and current_user.profile_picture != 'default_profile.png') else media_url('default_logo.svg') }}" alt="Profil" class="h-28 w-28 rounded-full object-cover border mb-3">
+      <p class="text-sm text-slate-500">Cette image est affichée dans l'interface admin.</p>
+      <p class="text-xs text-slate-400 mt-1">Formats recommandés: PNG, JPG, WebP.</p>
+    </div>
+  </section>
+
+  <section class="card-surface rounded-2xl p-5 xl:col-span-2">
+    <h2 class="text-xl font-bold mb-3"><i class="fas fa-user-pen text-blue-600 mr-2"></i>Informations personnelles</h2>
+    <form action="{{ url_for('admin_profile_update') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
+          <input required name="first_name" value="{{ current_user.first_name }}" class="rounded-xl px-4 py-3 border w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Nom</label>
+          <input required name="last_name" value="{{ current_user.last_name }}" class="rounded-xl px-4 py-3 border w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-envelope text-blue-600 mr-1"></i>Email
+        </label>
+        <input required type="email" name="email" value="{{ current_user.email }}" class="rounded-xl px-4 py-3 border w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+      </div>
+      
+      <!-- Phone Input Component -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-phone text-blue-600 mr-1"></i>Numéro de téléphone
+        </label>
+        <div class="phone-input-wrapper" 
+             data-country="{{ current_user.country_code or 'CD' }}" 
+             data-phone="{{ current_user.phone_number or '' }}">
+        </div>
+      </div>
+      
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-2">Photo de profil</label>
+        <input id="profile_picture_file" type="file" name="profile_picture_file" accept="image/*" class="rounded-lg px-2 py-1 border w-full bg-white text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-2">Adresse</label>
+        <textarea name="address" rows="2" class="rounded-lg px-3 py-2 border w-full text-sm">{{ current_user.address or '' }}</textarea>
+      </div>
+      <button class="rounded-lg bg-blue-700 text-white px-4 py-2 text-sm font-medium hover:bg-blue-800 transition">
+        <i class="fas fa-save mr-2"></i>Mettre à jour
+      </button>
+    </form>
+  </section>
+
+  <section class="card-surface rounded-2xl p-4 xl:col-span-2">
+    <h2 class="text-lg font-bold mb-2"><i class="fas fa-lock text-amber-600 mr-2"></i>Changer le mot de passe</h2>
+    <form action="{{ url_for('admin_profile_password') }}" method="POST" class="space-y-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="password" name="current_password" required placeholder="Mot de passe actuel" class="password-toggle rounded-lg px-4 py-2 border w-full text-sm pr-10">
+      <input type="password" name="new_password" required placeholder="Nouveau mot de passe" class="password-toggle rounded-lg px-4 py-2 border w-full text-sm pr-10">
+      <input type="password" name="confirm_password" required placeholder="Confirmer le mot de passe" class="password-toggle rounded-lg px-4 py-2 border w-full text-sm pr-10">
+      <button class="rounded-lg bg-amber-600 text-white px-4 py-2 text-sm font-medium hover:bg-amber-700 transition">
+        <i class="fas fa-key mr-2"></i>Modifier
+      </button>
+    </form>
+  </section>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/phone-input.css') }}">
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Inject countries data from Python to JavaScript
+window.COUNTRIES_DATA = [
+    {% for code, name, dial_code in countries_with_dial_codes() %}
+    {% set flag = get_country_flag(code) %}
+    ['{{ code }}', '{{ flag }}', '{{ name }}', '{{ dial_code }}'],
+    {% endfor %}
+];
+</script>
+<script src="{{ url_for('static', filename='js/phone-input.js') }}"></script>
+<script>
+    if (window.COUNTRIES_DATA && window.COUNTRIES_DATA.length > 0) {
+        initPhoneInputs();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "admin/basee.html" %}
+
+{% block title %}Vendeurs - Tekanayo{% endblock %}
+{% block header_title %}Gestion des Vendeurs{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card-surface rounded-2xl p-4">
+            <p class="text-sm text-slate-500"><i class="fas fa-store mr-2 text-indigo-500"></i>Total vendeurs</p>
+            <p id="sellerTotal" class="text-2xl font-bold mt-1">{{ sellers|length }}</p>
+        </div>
+        <div class="card-surface rounded-2xl p-4">
+            <p class="text-sm text-slate-500"><i class="fas fa-circle-check mr-2 text-emerald-500"></i>Vendeurs actifs</p>
+            <p id="sellerActive" class="text-2xl font-bold mt-1">{{ sellers|selectattr('is_active')|list|length }}</p>
+        </div>
+        <div class="card-surface rounded-2xl p-4">
+            <p class="text-sm text-slate-500"><i class="fas fa-pause-circle mr-2 text-amber-500"></i>Vendeurs suspendus</p>
+            <p id="sellerPaused" class="text-2xl font-bold mt-1">{{ sellers|rejectattr('is_active')|list|length }}</p>
+        </div>
+    </div>
+
+    <div class="card-surface rounded-2xl p-5">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+            <h2 class="text-xl font-bold"><i class="fas fa-shop-lock text-indigo-600 mr-2"></i>Vendeurs de la plateforme</h2>
+            <a href="{{ url_for('tekanayo_admin_panel') }}" class="text-sm text-blue-600 hover:text-blue-500">
+                <i class="fas fa-arrow-left mr-2"></i>Retour dashboard
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-3 mb-4">
+            <div class="lg:col-span-2 relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input id="sellerSearch" type="text" placeholder="Rechercher boutique, email, abonnement..." class="rounded-xl pl-10 pr-4 py-2 border w-full">
+            </div>
+            <select id="sellerStatusFilter" class="rounded-xl px-4 py-2 border w-full">
+                <option value="all">Tous les statuts</option>
+                <option value="actif">Actifs</option>
+                <option value="suspendu">Suspendus</option>
+            </select>
+            <button id="sortByName" type="button" class="rounded-xl px-4 py-2 border hover:bg-slate-50 text-sm font-semibold">
+                <i class="fas fa-arrow-down-a-z mr-2"></i>Trier par nom
+            </button>
+        </div>
+
+        <div class="mb-3 text-sm text-slate-500">
+            <i class="fas fa-filter mr-2"></i><span id="visibleSellerCount">{{ sellers|length }}</span> résultat(s) affiché(s)
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm" id="sellersTable">
+                <thead>
+                    <tr class="text-left text-slate-500 border-b border-[var(--border)]">
+                        <th class="py-2 pr-2">Boutique</th>
+                        <th class="py-2 pr-2">Email</th>
+                        <th class="py-2 pr-2">Statut</th>
+                        <th class="py-2 pr-2">Abonnement</th>
+                        <th class="py-2 pr-2">URL</th>
+                        <th class="py-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sellers %}
+                    <tr class="border-b border-[var(--border)] seller-row"
+                        data-name="{{ (s.name or '')|lower }}"
+                        data-email="{{ (s.owner_email or '')|lower }}"
+                        data-subscription="{{ (s.subscription_status or '')|lower }}"
+                        data-status="{{ 'actif' if s.is_active else 'suspendu' }}">
+                        <td class="py-3 pr-2">
+                            <a class="text-blue-700 hover:underline" href="{{ url_for('seller_space', slug=s.slug) }}">
+                                <i class="fas fa-store mr-2 text-indigo-500"></i>{{ s.name }}
+                            </a>
+                            {% if s.verification_status == 'verified' %}
+                                <i class="fas fa-certificate text-blue-500 ml-1" title="Vérifié"></i>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 pr-2">{{ s.owner_email }}</td>
+                        <td class="py-3 pr-2">
+                            {% if s.is_active %}
+                            <span class="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fas fa-circle text-[8px]"></i>Actif</span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200"><i class="fas fa-circle text-[8px]"></i>Suspendu</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 pr-2">{{ s.subscription_status }}</td>
+                        <td class="py-3 pr-2">
+                            <div class="flex items-center gap-2">
+                                <a class="text-indigo-600 hover:text-indigo-500" href="{{ url_for('seller_shop_by_id', shop_id=s.id) }}">/boutique{{ s.id }}</a>
+                                <button type="button" class="copy-shop-url text-slate-400 hover:text-indigo-600" data-url="{{ request.host_url.rstrip('/') }}{{ url_for('seller_shop_by_id', shop_id=s.id) }}" title="Copier l'URL">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="py-3">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ url_for('admin_seller_view', shop_id=s.id) }}" class="px-3 py-1 rounded-lg border text-xs hover:bg-slate-50" title="Voir les détails">
+                                    <i class="fas fa-eye mr-1"></i>Voir
+                                </a>
+                                <form action="{{ url_for('admin_toggle_seller', shop_id=s.id) }}" method="POST" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="px-3 py-1 rounded-lg border text-xs hover:bg-gray-50" title="Activer/Suspendre">
+                                        <i class="fas fa-power-off mr-1"></i>Basculer
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('admin_verify_seller', shop_id=s.id) }}" method="POST" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="px-3 py-1 rounded-lg border text-xs {% if s.verification_status == 'verified' %}bg-blue-50 border-blue-200 text-blue-700{% else %}hover:bg-gray-50 text-gray-600{% endif %}" title="Vérifier">
+                                        <i class="fas fa-certificate mr-1"></i>{{ 'Annuler Vérif' if s.verification_status == 'verified' else 'Vérifier' }}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="py-4 text-center text-gray-500">Aucun vendeur enregistré.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  const searchInput = document.getElementById('sellerSearch');
+  const statusFilter = document.getElementById('sellerStatusFilter');
+  const sortBtn = document.getElementById('sortByName');
+  const countEl = document.getElementById('visibleSellerCount');
+  const tbody = document.querySelector('#sellersTable tbody');
+  const rows = Array.from(document.querySelectorAll('.seller-row'));
+  let asc = true;
+
+  const applyFilters = () => {
+    const query = (searchInput?.value || '').trim().toLowerCase();
+    const status = statusFilter?.value || 'all';
+    let visible = 0;
+
+    rows.forEach((row) => {
+      const haystack = `${row.dataset.name} ${row.dataset.email} ${row.dataset.subscription} ${row.dataset.status}`;
+      const passSearch = !query || haystack.includes(query);
+      const passStatus = status === 'all' || row.dataset.status === status;
+      const show = passSearch && passStatus;
+      row.style.display = show ? '' : 'none';
+      if (show) visible += 1;
+    });
+
+    if (countEl) countEl.textContent = String(visible);
+  };
+
+  if (searchInput) searchInput.addEventListener('input', applyFilters);
+  if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+
+  if (sortBtn && tbody) {
+    sortBtn.addEventListener('click', () => {
+      const sorted = [...rows].sort((a, b) => {
+        const na = a.dataset.name || '';
+        const nb = b.dataset.name || '';
+        return asc ? na.localeCompare(nb) : nb.localeCompare(na);
+      });
+      sorted.forEach((r) => tbody.appendChild(r));
+      asc = !asc;
+      sortBtn.innerHTML = asc
+        ? '<i class="fas fa-arrow-down-a-z mr-2"></i>Trier par nom'
+        : '<i class="fas fa-arrow-up-z-a mr-2"></i>Trier par nom';
+      applyFilters();
+    });
+  }
+
+  document.querySelectorAll('.copy-shop-url').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const value = btn.getAttribute('data-url') || '';
+      if (!value) return;
+      try {
+        await navigator.clipboard.writeText(value);
+        btn.innerHTML = '<i class="fas fa-check text-emerald-600"></i>';
+        setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 1200);
+      } catch (_) {
+        window.prompt('Copiez l\'URL:', value);
+      }
+    });
+  });
+
+  applyFilters();
+})();
+</script>
+{% endblock %}
