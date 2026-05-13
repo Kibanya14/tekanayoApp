@@ -6,10 +6,12 @@ Extrait de apps.py pour alléger le fichier principal
 import os
 import re
 import secrets
+import tempfile
 from datetime import datetime
 from functools import wraps
 
 from flask import current_app, flash, redirect, request, session, url_for
+from backend.antivirus import validate_upload_safe
 from flask_login import current_user, login_required
 from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -181,11 +183,30 @@ def _save_uploaded_image_legacy(file_storage, bucket: str) -> str | None:
         return None
     
     try:
-        # Fallback au stockage local
+        # Scanner avant d'écrire dans le backup local
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{ext}') as tmp:
+                file_storage.stream.seek(0)
+                tmp.write(file_storage.stream.read())
+                temp_path = tmp.name
+
+            safe, message = validate_upload_safe(temp_path, 'images' if ext in {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp'} else 'documents')
+            if not safe:
+                print(f"❌ Fichier non sûr: {message}")
+                return None
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except Exception:
+                    pass
+
         folder = os.path.join(current_app.config["UPLOAD_ROOT"], bucket)
         os.makedirs(folder, exist_ok=True)
         final_name = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
         abs_path = os.path.join(folder, final_name)
+        file_storage.stream.seek(0)
         file_storage.save(abs_path)
         return f"/uploads/{bucket}/{final_name}"
     except Exception as e:

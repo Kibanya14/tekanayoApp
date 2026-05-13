@@ -1,10 +1,11 @@
 import os
 import re
 import secrets
+import time
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for, send_file, send_from_directory
+from flask import Flask, flash, jsonify, redirect, g, render_template, request, session, url_for, send_file, send_from_directory
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
@@ -32,6 +33,8 @@ from backend.models import (
     AdminNotification,
     db,
 )
+from backend.logger import AppLogger, setup_sentry, StructuredLogger, log_app_startup
+from backend.stock_manager import StockManager
 from backend.utils.invoice_generator import generate_seller_invoice_pdf
 from countries import Countries, FlaskCountries
 
@@ -348,6 +351,21 @@ def create_app():
     db.init_app(app)
     mail.init_app(app)
     Migrate(app, db)
+
+    app.logger = AppLogger().get()
+    setup_sentry(app)
+    log_app_startup("TekanayoApp", os.getenv("APP_VERSION", "1.0"))
+
+    @app.before_request
+    def _record_request_start():
+        g.start_time = time.time()
+
+    @app.after_request
+    def _log_response(response):
+        if hasattr(g, 'start_time'):
+            elapsed_ms = (time.time() - g.start_time) * 1000
+            StructuredLogger.log_request(request, response.status_code, elapsed_ms)
+        return response
 
     from flask_wtf.csrf import CSRFProtect
     from flask_limiter import Limiter
@@ -3074,6 +3092,15 @@ def create_app():
         p = SellerProduct(shop_id=shop.id, name=name, category=category, description=description, image_url=image_url or None, price=price, quantity=max(quantity, 0))
         db.session.add(p)
         db.session.commit()
+        if p.quantity > 0:
+            StockManager.log_stock_change(
+                product_id=p.id,
+                user_id=current_admin.id if current_admin else 0,
+                old_quantity=0,
+                new_quantity=p.quantity,
+                reason="initial_stock",
+                user_type="seller"
+            )
         flash("Produit ajouté.", "success")
         return redirect(url_for("seller_products_page", slug=slug))
 
@@ -4271,11 +4298,26 @@ def create_app():
         )
         db.session.add(order)
 
+        stock_changes = []
         for item in cart_entries:
             p = product_map[item["product_id"]]
-            p.quantity = max(0, p.quantity - int(item["quantity"]))
+            old_quantity = p.quantity
+            sold_quantity = int(item["quantity"])
+            new_quantity = max(0, old_quantity - sold_quantity)
+            p.quantity = new_quantity
+            stock_changes.append((p.id, customer.id if customer else 0, old_quantity, new_quantity))
 
         db.session.commit()
+        for product_id, user_id, old_quantity, new_quantity in stock_changes:
+            StockManager.log_stock_change(
+                product_id=product_id,
+                user_id=user_id,
+                old_quantity=old_quantity,
+                new_quantity=new_quantity,
+                reason="order",
+                user_type="customer"
+            )
+
         _set_shop_cart(shop.id, [])
 
         contact_email = email if not customer else customer.email

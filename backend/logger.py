@@ -22,9 +22,14 @@ class StructuredLogger:
         """Configurer le logger avec les handlers """
         logger = logging.getLogger(self.app_name)
         
+        # Ne pas ajouter de handlers en double si le logger existe déjà
+        if logger.handlers:
+            return logger
+
         # Level par environnement
         log_level = os.getenv('LOG_LEVEL', 'INFO')
         logger.setLevel(getattr(logging, log_level))
+        logger.propagate = False
 
         # Format structuré
         formatter = logging.Formatter(

@@ -437,6 +437,25 @@ class SellerProduct(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+class StockHistory(db.Model):
+    __tablename__ = "stock_history"
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("seller_products.id"), nullable=False)
+    user_id = db.Column(db.Integer, nullable=False)
+    user_type = db.Column(db.String(20), default='seller')
+    old_quantity = db.Column(db.Integer, default=0)
+    new_quantity = db.Column(db.Integer, default=0)
+    quantity_change = db.Column(db.Integer)
+    reason = db.Column(db.String(255))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    product = db.relationship("SellerProduct", backref=db.backref("stock_history", lazy=True))
+
+    def __repr__(self):
+        return f"<StockHistory product={self.product_id} {self.old_quantity}->{self.new_quantity}>"
+
+
 class SellerDeliverer(db.Model):
     __tablename__ = "seller_deliverers"
 

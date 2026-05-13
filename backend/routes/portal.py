@@ -380,7 +380,7 @@ def become_seller():
     if address_file and address_file.filename:
         address_path = _save_uploaded_image(address_file, "seller_documents/address", seller_id=shop.seller_id)
         if address_path:
-            shop.address_proof_path = address_path
+            shop.address_document_path = address_path
 
     # Upload du logo
     logo_file = request.files.get("shop_logo")

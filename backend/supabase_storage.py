@@ -3,9 +3,12 @@
 import os
 import secrets
 import time
+import tempfile
 from typing import Dict, Optional, BinaryIO, List
 from supabase import create_client, Client
 from .storage_config import StorageConfig, FileCategory, FilePermissions, BucketType
+from backend.antivirus import AntivirusScanner, validate_upload_safe
+from backend.logger import StructuredLogger
 
 class SupabaseStorage:
     """Helper pour gérer le stockage Supabase avec structure automatique"""
@@ -59,6 +62,35 @@ class SupabaseStorage:
             file.seek(0)  # Reset file pointer
             file_content = file.read()
 
+            temp_path = None
+            try:
+                suffix = os.path.splitext(file.filename or '')[1]
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                    tmp.write(file_content)
+                    temp_path = tmp.name
+
+                scan_category = self._get_antivirus_category(category, file.filename)
+                safe, message = validate_upload_safe(temp_path, scan_category)
+                if not safe:
+                    StructuredLogger().error(
+                        "Antivirus upload rejected",
+                        extra={
+                            'file': file.filename,
+                            'category': str(category),
+                            'reason': message
+                        }
+                    )
+                    return {
+                        "success": False,
+                        "error": f"Antivirus failed: {message}"
+                    }
+            finally:
+                if temp_path and os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except Exception:
+                        pass
+
             # 4.5. Optimiser l'image si demandé et si c'est une image
             if optimize_image and self._is_image_file(file.filename):
                 from backend.image_optimizer import ImageOptimizer
@@ -78,6 +110,16 @@ class SupabaseStorage:
                 # 5. Générer l'URL publique si nécessaire
                 permissions = StorageConfig.get_permissions(category)
                 public_url = None
+
+                StructuredLogger().info(
+                    "Supabase upload succeeded",
+                    extra={
+                        'file': file.filename,
+                        'path': file_path,
+                        'category': str(category),
+                        'size_mb': len(file_content) / (1024 * 1024)
+                    }
+                )
 
                 if permissions == FilePermissions.PUBLIC:
                     public_url = self.get_public_url(file_path)
