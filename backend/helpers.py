@@ -106,8 +106,8 @@ def _send_email(to: str, subject: str, body: str, html_body: str | None = None):
 # ============================================================================
 
 
-def _save_uploaded_image(file_storage, bucket: str) -> str | None:
-    """Sauvegarde une image uploadée dans Supabase Storage."""
+def _save_uploaded_image(file_storage, bucket: str, optimize: bool = True, **path_vars) -> str | None:
+    """Sauvegarde une image uploadée dans Supabase Storage avec optimisation automatique."""
     if not file_storage or not getattr(file_storage, "filename", None):
         return None
     
@@ -120,40 +120,77 @@ def _save_uploaded_image(file_storage, bucket: str) -> str | None:
         return None
     
     try:
-        # Utiliser Supabase Storage à la place du stockage local
+        # Mapper l'ancien système de buckets vers les nouvelles catégories
+        category = _map_bucket_to_category(bucket)
+        if not category:
+            # Fallback vers l'ancien système si mapping échoue
+            return _save_uploaded_image_legacy(file_storage, bucket)
+        
+        # Utiliser le nouveau système Supabase Storage
         from backend.supabase_storage import storage_client
         
-        # Construire le chemin Supabase : bucket/YYYYMMDDHHMMSS_token.ext
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        token = secrets.token_hex(8)
-        supabase_path = f"{bucket}/{timestamp}_{token}.{ext}"
-        
-        # Upload vers Supabase
-        response = storage_client.client.storage.from_('uploads').upload(
-            path=supabase_path,
-            file=file_storage.stream.read(),
-            file_options={"content-type": file_storage.content_type or "application/octet-stream"}
+        # Upload avec optimisation automatique pour les images
+        result = storage_client.upload_file(
+            file=file_storage,
+            category=category,
+            optimize_image=optimize,
+            **path_vars
         )
         
-        # Retourner le chemin pour stocker en BD
-        if response.status_code == 200:
-            return supabase_path
+        if result["success"]:
+            return result["path"]
         else:
-            current_app.logger.error(f"Supabase upload failed: {response.json()}")
+            print(f"❌ Erreur upload: {result.get('error', 'Inconnue')}")
             return None
+            
     except Exception as e:
-        current_app.logger.error(f"Upload error: {str(e)}")
-        # Fallback au stockage local en cas d'erreur
-        try:
-            folder = os.path.join(current_app.config["UPLOAD_ROOT"], bucket)
-            os.makedirs(folder, exist_ok=True)
-            final_name = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
-            abs_path = os.path.join(folder, final_name)
-            file_storage.save(abs_path)
-            return f"/uploads/{bucket}/{final_name}"
-        except Exception as fallback_error:
-            current_app.logger.error(f"Fallback upload failed: {str(fallback_error)}")
-            return None
+        print(f"❌ Erreur lors de l'upload: {str(e)}")
+        return None
+
+
+def _map_bucket_to_category(bucket: str):
+    """Mappe les anciens buckets vers les nouvelles catégories de fichiers."""
+    from backend.storage_config import FileCategory
+    
+    mapping = {
+        "platform/products": FileCategory.PRODUCT_IMAGE,
+        "platform/logos": FileCategory.PLATFORM_LOGO,
+        "platform/profiles": FileCategory.PROFILE_PICTURE,
+        "seller/profiles": FileCategory.PROFILE_PICTURE,
+        "seller/logos": FileCategory.SHOP_LOGO,
+        "seller/customer_profiles": FileCategory.PROFILE_PICTURE,
+        "deliverer/profiles": FileCategory.PROFILE_PICTURE,
+        "seller_documents/id": FileCategory.SELLER_ID_DOC,
+        "seller_documents/address": FileCategory.SELLER_ADDRESS_DOC,
+    }
+    
+    return mapping.get(bucket)
+
+
+def _save_uploaded_image_legacy(file_storage, bucket: str) -> str | None:
+    """Fallback vers l'ancien système de stockage local."""
+    if not file_storage or not getattr(file_storage, "filename", None):
+        return None
+    
+    filename = secure_filename(file_storage.filename or "")
+    if not filename or "." not in filename:
+        return None
+    
+    ext = filename.rsplit(".", 1)[1].lower()
+    if ext not in ALLOWED_UPLOAD_EXTENSIONS:
+        return None
+    
+    try:
+        # Fallback au stockage local
+        folder = os.path.join(current_app.config["UPLOAD_ROOT"], bucket)
+        os.makedirs(folder, exist_ok=True)
+        final_name = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
+        abs_path = os.path.join(folder, final_name)
+        file_storage.save(abs_path)
+        return f"/uploads/{bucket}/{final_name}"
+    except Exception as e:
+        print(f"❌ Erreur fallback upload: {str(e)}")
+        return None
 
 
 # ============================================================================

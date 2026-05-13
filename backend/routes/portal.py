@@ -373,19 +373,19 @@ def become_seller():
     address_file = request.files.get("address_proof")
 
     if id_file and id_file.filename:
-        id_path = _save_uploaded_image(id_file, "seller_documents/id")
+        id_path = _save_uploaded_image(id_file, "seller_documents/id", seller_id=shop.seller_id)
         if id_path:
             shop.id_document_path = id_path
 
     if address_file and address_file.filename:
-        address_path = _save_uploaded_image(address_file, "seller_documents/address")
+        address_path = _save_uploaded_image(address_file, "seller_documents/address", seller_id=shop.seller_id)
         if address_path:
             shop.address_proof_path = address_path
 
     # Upload du logo
     logo_file = request.files.get("shop_logo")
     if logo_file and logo_file.filename:
-        logo_path = _save_uploaded_image(logo_file, "seller/logos")
+        logo_path = _save_uploaded_image(logo_file, "seller/logos", seller_id=shop.seller_id)
         if logo_path:
             shop.logo_url = logo_path
 

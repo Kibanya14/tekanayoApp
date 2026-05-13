@@ -369,22 +369,6 @@ def create_app():
 
     ALLOWED_UPLOAD_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 
-    def _save_uploaded_image(file_storage, bucket: str) -> str | None:
-        if not file_storage or not getattr(file_storage, "filename", None):
-            return None
-        filename = secure_filename(file_storage.filename or "")
-        if not filename or "." not in filename:
-            return None
-        ext = filename.rsplit(".", 1)[1].lower()
-        if ext not in ALLOWED_UPLOAD_EXTENSIONS:
-            return None
-        folder = os.path.join(app.config["UPLOAD_ROOT"], bucket)
-        os.makedirs(folder, exist_ok=True)
-        final_name = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}.{ext}"
-        abs_path = os.path.join(folder, final_name)
-        file_storage.save(abs_path)
-        return f"/uploads/{bucket}/{final_name}"
-
 
     # Schema changes are managed only through Flask-Migrate (Alembic).
 
@@ -2345,7 +2329,7 @@ def create_app():
         if not name or not category or price <= 0:
             flash("Produit invalide: nom, catégorie et prix sont obligatoires.", "error")
             return redirect(url_for("tekanayo_admin_products"))
-        image = _save_uploaded_image(request.files.get("image_file"), "platform/products")
+        image = _save_uploaded_image(request.files.get("image_file"), "platform/products", seller_id=shop.id)
         item = SellerProduct(
             shop_id=shop.id,
             name=name,
@@ -2648,7 +2632,7 @@ def create_app():
         country_code = (request.form.get("country_code") or "").strip() or None
         phone_number = (request.form.get("phone_number") or "").strip() or None
         address = (request.form.get("address") or "").strip() or None
-        uploaded_profile_picture = _save_uploaded_image(request.files.get("profile_picture_file"), "platform/profiles")
+        uploaded_profile_picture = _save_uploaded_image(request.files.get("profile_picture_file"), "platform/profiles", user_type="platform")
 
         if not all([first_name, last_name, email]) or "@" not in email:
             flash("Informations profil invalides.", "error")
@@ -2917,7 +2901,7 @@ def create_app():
         seller_admin.country_code = country_code
         seller_admin.phone_number = phone_number
         
-        uploaded_profile_picture = _save_uploaded_image(request.files.get("profile_picture_file"), "seller/profiles")
+        uploaded_profile_picture = _save_uploaded_image(request.files.get("profile_picture_file"), "seller/profiles", user_type="seller", user_id=seller_admin.id)
         if uploaded_profile_picture:
             seller_admin.profile_picture = uploaded_profile_picture
         new_password = (request.form.get("new_password") or "").strip()
@@ -3126,14 +3110,17 @@ def create_app():
         uploaded_seller_space_logo = _save_uploaded_image(
             request.files.get("seller_space_logo_file") or request.files.get("admin_logo"),
             "seller/logos",
+            seller_id=shop.seller_id
         )
         uploaded_shop_logo = _save_uploaded_image(
             request.files.get("shop_logo_file") or request.files.get("shop_logo"),
             "seller/logos",
+            seller_id=shop.seller_id
         )
         uploaded_deliverer_logo = _save_uploaded_image(
             request.files.get("deliverer_space_logo_file") or request.files.get("deliverer_logo"),
             "seller/logos",
+            seller_id=shop.seller_id
         )
         if uploaded_seller_space_logo:
             shop.seller_space_logo_url = uploaded_seller_space_logo
@@ -4147,7 +4134,7 @@ def create_app():
         customer.country_code = country_code
         customer.phone_number = phone_number
         customer.address = (request.form.get("address") or "").strip() or None
-        uploaded_profile = _save_uploaded_image(request.files.get("profile_picture_file"), "seller/customer_profiles")
+        uploaded_profile = _save_uploaded_image(request.files.get("profile_picture_file"), "seller/customer_profiles", user_type="customer", user_id=customer.id)
         if uploaded_profile:
             customer.profile_picture = uploaded_profile
         elif "profile_picture" in request.form:
@@ -4479,7 +4466,7 @@ def create_app():
         deliverer.country_code = country_code
         deliverer.phone_number = phone_number
         deliverer.address = (request.form.get("address") or "").strip() or None
-        uploaded_profile_picture = _save_uploaded_image(request.files.get("profile_picture_file"), "deliverer/profiles")
+        uploaded_profile_picture = _save_uploaded_image(request.files.get("profile_picture_file"), "deliverer/profiles", user_type="deliverer", user_id=deliverer.id)
         if uploaded_profile_picture:
             deliverer.profile_picture = uploaded_profile_picture
         new_password = (request.form.get("new_password") or "").strip()

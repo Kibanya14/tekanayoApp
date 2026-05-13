@@ -3,7 +3,7 @@
 import os
 import secrets
 import time
-from typing import Dict, Optional, BinaryIO
+from typing import Dict, Optional, BinaryIO, List
 from supabase import create_client, Client
 from .storage_config import StorageConfig, FileCategory, FilePermissions, BucketType
 
@@ -24,6 +24,7 @@ class SupabaseStorage:
     def upload_file(self,
                    file: BinaryIO,
                    category: FileCategory,
+                   optimize_image: bool = True,
                    **path_vars) -> Dict[str, any]:
         """
         Upload un fichier avec structure automatique
@@ -58,6 +59,12 @@ class SupabaseStorage:
             file.seek(0)  # Reset file pointer
             file_content = file.read()
 
+            # 4.5. Optimiser l'image si demandé et si c'est une image
+            if optimize_image and self._is_image_file(file.filename):
+                from backend.image_optimizer import ImageOptimizer
+                file_content = ImageOptimizer.optimize_image(file_content, 'medium')
+                print(f"✅ Image optimisée: {len(file_content)} bytes")
+
             response = self.client.storage.from_(self.bucket_name).upload(
                 path=file_path,
                 file=file_content,
@@ -83,7 +90,8 @@ class SupabaseStorage:
                     "path": file_path,
                     "public_url": public_url,
                     "permissions": permissions.value,
-                    "bucket": self.bucket_name
+                    "bucket": self.bucket_name,
+                    "optimized": optimize_image and self._is_image_file(file.filename)
                 }
             else:
                 return {
@@ -127,6 +135,13 @@ class SupabaseStorage:
             return [item["name"] for item in response] if response else []
         except Exception:
             return []
+
+    def _is_image_file(self, filename: str) -> bool:
+        """Vérifie si le fichier est une image"""
+        if not filename:
+            return False
+        image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
+        return any(filename.lower().endswith(ext) for ext in image_extensions)
 
 # Instance globale
 storage_client = SupabaseStorage()

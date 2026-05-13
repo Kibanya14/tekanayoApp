@@ -48,7 +48,7 @@ class StorageConfig:
             "allowed_extensions": [".jpg", ".jpeg", ".png", ".webp"]
         },
         FileCategory.PRODUCT_IMAGE: {
-            "path": "public/products/{seller_id}/{product_id}/",
+            "path": "public/products/{seller_id}/",
             "permissions": FilePermissions.PUBLIC,
             "max_size_mb": 10,
             "allowed_extensions": [".jpg", ".jpeg", ".png", ".webp"]
