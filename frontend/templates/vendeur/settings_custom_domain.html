@@ -1,0 +1,301 @@
+<!-- 
+    SECTION DOMAINE PERSONNALISÉ POUR VENDEUR
+    À insérer dans vendeur/settings.html après la section "Logos"
+    
+    Fichier: frontend/templates/vendeur/settings_custom_domain.html
+    Ou copier/coller directement dans settings.html
+-->
+
+<div class="card-surface rounded-xl shadow-md p-6 border border-gray-200">
+    <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+        <i class="fas fa-globe text-indigo-600"></i>
+        <span>🌐 Domaine Personnalisé</span>
+    </h3>
+    
+    <!-- Affichage URL actuelle -->
+    <div class="mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+        <p class="text-sm text-gray-600 mb-3 font-medium">
+            📍 <strong>Votre URL actuelle:</strong>
+        </p>
+        <div class="flex items-center gap-2">
+            <code class="flex-1 px-3 py-2 bg-white border border-gray-300 rounded text-sm font-mono text-gray-700">
+                https://tekanayo.com/{{ shop.slug }}
+            </code>
+            <button type="button" 
+                    class="px-3 py-2 rounded border border-indigo-300 hover:bg-indigo-100 transition"
+                    onclick="copyToClipboard('https://tekanayo.com/{{ shop.slug }}')">
+                <i class="fas fa-copy text-indigo-600"></i>
+            </button>
+        </div>
+        <p class="text-xs text-indigo-600 mt-2 font-medium">
+            ✓ Cette URL fonctionne toujours, même après avoir configuré un domaine personnel
+        </p>
+    </div>
+
+    <!-- Options -->
+    <form method="POST" action="{{ url_for('seller_update_custom_domain', slug=shop.slug) }}" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <!-- ============================================================
+             OPTION 1: Pas de domaine personnalisé
+             ============================================================ -->
+        <div>
+            <label class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition {% if not shop.custom_domain %}border-indigo-400 bg-indigo-50{% endif %}"
+                   onclick="toggleDomainForm(false)">
+                <input type="radio" name="domain_option" value="none" 
+                       class="mt-1"
+                       {% if not shop.custom_domain %}checked{% endif %}>
+                <div class="flex-1">
+                    <p class="font-semibold text-gray-800">Pas de domaine personnalisé</p>
+                    <p class="text-sm text-gray-600">Utiliser l'URL Tekanayo (tekanayo.com/{{ shop.slug }})</p>
+                </div>
+            </label>
+        </div>
+
+        <!-- ============================================================
+             OPTION 2: Avec domaine personnalisé
+             ============================================================ -->
+        <div>
+            <label class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition {% if shop.custom_domain %}border-indigo-400 bg-indigo-50{% endif %}"
+                   onclick="toggleDomainForm(true)">
+                <input type="radio" name="domain_option" value="custom" 
+                       class="mt-1"
+                       {% if shop.custom_domain %}checked{% endif %}>
+                <div class="flex-1">
+                    <p class="font-semibold text-gray-800">J'ai un domaine personnalisé</p>
+                    <p class="text-sm text-gray-600">Utiliser mon propre domaine (ex: mangastore.com)</p>
+                </div>
+            </label>
+        </div>
+
+        <!-- ============================================================
+             FORMULAIRE SAISIE DOMAINE (caché par défaut)
+             ============================================================ -->
+        <div id="domain-input-section" 
+             style="display: {% if shop.custom_domain %}block{% else %}none{% endif %};"
+             class="p-6 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg border-2 border-indigo-200 space-y-4">
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 mb-2">
+                    📝 Votre nom de domaine:
+                </label>
+                
+                <div class="flex gap-2">
+                    <input type="text" 
+                           name="custom_domain" 
+                           placeholder="ex: mangastore.com"
+                           value="{{ shop.custom_domain or '' }}"
+                           class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 font-mono"
+                           pattern="^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+                           onchange="validateDomainOnChange()">
+                    
+                    <input type="hidden" name="action" value="set">
+                    
+                    <button type="submit" 
+                            class="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold transition flex items-center gap-2">
+                        <i class="fas fa-check"></i> Ajouter
+                    </button>
+                </div>
+                
+                <p class="text-xs text-gray-600 mt-2">
+                    ℹ️ Format: <code class="bg-white px-2 py-1 rounded">mangastore.com</code> 
+                    ou <code class="bg-white px-2 py-1 rounded">shop.mangastore.com</code>
+                </p>
+            </div>
+
+            <!-- ════════════════════════════════════════════════════════
+                 AIDE - GUIDE DNS
+                 ════════════════════════════════════════════════════════ -->
+            <details class="p-4 bg-white rounded-lg border border-blue-200 cursor-pointer">
+                <summary class="font-semibold text-blue-900 select-none hover:text-blue-700 transition">
+                    <i class="fas fa-question-circle"></i> 📖 Comment configurer mon domaine?
+                </summary>
+                
+                <div class="mt-4 space-y-4 text-sm text-gray-700">
+                    
+                    <!-- Étape 1 -->
+                    <div class="bg-gradient-to-r from-blue-50 to-transparent p-4 rounded border-l-4 border-blue-400">
+                        <p class="font-semibold text-blue-900 mb-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-400 text-white rounded-full text-xs mr-2">1</span>
+                            Achetez un domaine
+                        </p>
+                        <p class="text-xs text-gray-600 ml-8">
+                            Chez <strong>Namecheap</strong>, <strong>Godaddy</strong>, <strong>OVH</strong>, ou votre fournisseur préféré (~$10/an)
+                        </p>
+                    </div>
+
+                    <!-- Étape 2 -->
+                    <div class="bg-gradient-to-r from-green-50 to-transparent p-4 rounded border-l-4 border-green-400">
+                        <p class="font-semibold text-green-900 mb-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 bg-green-400 text-white rounded-full text-xs mr-2">2</span>
+                            Configurez le DNS
+                        </p>
+                        <p class="text-xs text-gray-600 ml-8 mb-3">
+                            Dans votre fournisseur, allez à <strong>"DNS Management"</strong> et ajoutez:
+                        </p>
+                        <div class="bg-gray-900 text-gray-100 p-3 rounded font-mono text-xs ml-8 space-y-1 border border-gray-700">
+                            <div><span class="text-yellow-400">Type:</span> <strong>A</strong></div>
+                            <div><span class="text-yellow-400">Host:</span> <strong>@</strong></div>
+                            <div><span class="text-yellow-400">Value:</span> <strong>92.132.145.33</strong></div>
+                            <div><span class="text-yellow-400">TTL:</span> <strong>3600</strong></div>
+                        </div>
+                        <button type="button" 
+                                class="mt-2 ml-8 text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
+                                onclick="copyDNSConfig()">
+                            <i class="fas fa-copy"></i> Copier la configuration DNS
+                        </button>
+                    </div>
+
+                    <!-- Étape 3 -->
+                    <div class="bg-gradient-to-r from-amber-50 to-transparent p-4 rounded border-l-4 border-amber-400">
+                        <p class="font-semibold text-amber-900 mb-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 bg-amber-400 text-white rounded-full text-xs mr-2">3</span>
+                            Attendez la propagation DNS
+                        </p>
+                        <p class="text-xs text-gray-600 ml-8">
+                            ⏳ C'est normal si ça prend 5-30 minutes (propagation mondiale)
+                        </p>
+                    </div>
+
+                    <!-- Étape 4 -->
+                    <div class="bg-gradient-to-r from-purple-50 to-transparent p-4 rounded border-l-4 border-purple-400">
+                        <p class="font-semibold text-purple-900 mb-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 bg-purple-400 text-white rounded-full text-xs mr-2">4</span>
+                            Vérifiez la configuration
+                        </p>
+                        <p class="text-xs text-gray-600 ml-8 mb-3">
+                            Testez que votre domaine pointe correctement:
+                        </p>
+                        {% if shop.custom_domain %}
+                        <button type="button" 
+                                class="ml-8 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-semibold flex items-center gap-2 transition"
+                                onclick="verifyDNS('{{ shop.custom_domain }}')">
+                            <i class="fas fa-check-circle"></i> Vérifier la configuration DNS
+                        </button>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </details>
+
+            <!-- ════════════════════════════════════════════════════════
+                 SECTION DOMAINE EXISTANT
+                 ════════════════════════════════════════════════════════ -->
+            {% if shop.custom_domain %}
+            <div class="p-4 bg-white rounded-lg border-2 border-green-200 space-y-3">
+                <p class="text-sm text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-check-circle text-green-500"></i>
+                    <strong>Domaine actuel:</strong> 
+                    <span class="font-mono text-green-600">{{ shop.custom_domain }}</span>
+                </p>
+                
+                <button type="submit" 
+                        name="action" 
+                        value="remove" 
+                        class="w-full px-4 py-2 bg-red-100 text-red-800 rounded-lg border border-red-300 hover:bg-red-200 font-semibold transition flex items-center justify-center gap-2"
+                        onclick="return confirm('Êtes-vous sûr? Votre boutique utilisera l\'URL par défaut (tekanayo.com/{{ shop.slug }}).')">
+                    <i class="fas fa-trash-alt"></i> Supprimer ce domaine
+                </button>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </form>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCRIPTS
+     ════════════════════════════════════════════════════════════════════════ -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialiser le comportement des radios
+    const radioButtons = document.querySelectorAll('input[name="domain_option"]');
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', () => {
+            toggleDomainForm(radio.value === 'custom');
+        });
+    });
+});
+
+function toggleDomainForm(show) {
+    const section = document.getElementById('domain-input-section');
+    if (show) {
+        section.style.display = 'block';
+        section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target.closest('button');
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check text-green-600"></i>';
+        setTimeout(() => {
+            btn.innerHTML = original;
+        }, 2000);
+    }).catch(() => {
+        alert('Erreur lors de la copie');
+    });
+}
+
+function copyDNSConfig() {
+    const config = `Type: A\nHost: @\nValue: 92.132.145.33\nTTL: 3600`;
+    navigator.clipboard.writeText(config).then(() => {
+        const btn = event.target;
+        const original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copié!';
+        setTimeout(() => {
+            btn.innerHTML = original;
+        }, 2000);
+    }).catch(() => {
+        alert('Erreur lors de la copie');
+    });
+}
+
+async function verifyDNS(domain) {
+    const btn = event.target;
+    const original = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
+    
+    try {
+        const response = await fetch('/api/vendor/verify-dns', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ domain: domain })
+        });
+        
+        const data = await response.json();
+        
+        if (data.valid) {
+            alert('✅ Succès!\n\n' + data.message + '\n\nVotre domaine est correctement configuré!');
+        } else {
+            alert('⏳ Vérification en cours\n\n' + data.message + '\n\nRéessayez dans quelques minutes.');
+        }
+    } catch (e) {
+        alert('❌ Erreur lors de la vérification:\n' + e.message);
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = original;
+}
+
+function validateDomainOnChange() {
+    const input = event.target;
+    const value = input.value.toLowerCase();
+    
+    if (value && !input.checkValidity()) {
+        input.classList.add('border-red-500', 'border-2');
+        input.classList.remove('border-gray-300', 'border-2');
+    } else {
+        input.classList.remove('border-red-500', 'border-2');
+        input.classList.add('border-gray-300', 'border-2');
+    }
+}
+</script>
