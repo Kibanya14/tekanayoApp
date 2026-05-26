@@ -1,0 +1,349 @@
+{% extends "vendeur/basee.html" %}
+
+{% block title %}Import Catalogue - Vendeur{% endblock %}
+{% block header_title %}Importer mon catalogue{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- ÉTAPE 1: Information -->
+    <div class="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+                <i class="fas fa-lightbulb text-blue-600 text-2xl"></i>
+            </div>
+            <div class="flex-grow">
+                <h3 class="text-lg font-semibold text-blue-900 mb-2">Importer votre catalogue en masse</h3>
+                <p class="text-sm text-blue-800 mb-3">
+                    Téléchargez votre liste de produits en Excel, CSV ou autre format supporté. 
+                    Tous vos produits seront créés automatiquement en quelques secondes.
+                </p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    <div class="bg-white/50 px-3 py-2 rounded">
+                        <i class="fas fa-file-excel text-green-600 mr-1"></i> XLSX/XLS
+                    </div>
+                    <div class="bg-white/50 px-3 py-2 rounded">
+                        <i class="fas fa-file-csv text-blue-600 mr-1"></i> CSV
+                    </div>
+                    <div class="bg-white/50 px-3 py-2 rounded">
+                        <i class="fas fa-file-word text-blue-600 mr-1"></i> DOCX
+                    </div>
+                    <div class="bg-white/50 px-3 py-2 rounded">
+                        <i class="fas fa-file-pdf text-red-600 mr-1"></i> PDF
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ÉTAPE 2: Zone d'upload -->
+    <div class="bg-white rounded-lg shadow-md p-8 border-2 border-dashed border-purple-200">
+        <form action="{{ url_for('seller_import_catalog', slug=shop.slug) }}" method="POST" enctype="multipart/form-data" id="importForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="text-center">
+                <div class="mb-4">
+                    <i class="fas fa-cloud-upload-alt text-purple-600 text-5xl"></i>
+                </div>
+                
+                <h4 class="text-xl font-semibold text-gray-800 mb-2">Glissez-déposez votre fichier</h4>
+                <p class="text-gray-600 mb-4">ou</p>
+                
+                <input 
+                    type="file" 
+                    name="file" 
+                    id="catalogFile"
+                    accept=".csv,.xlsx,.xlsm,.xltx,.xltm,.docx,.pdf,.txt,.tsv"
+                    class="hidden"
+                    required
+                >
+                
+                <button 
+                    type="button" 
+                    onclick="document.getElementById('catalogFile').click()"
+                    class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition inline-flex items-center gap-2"
+                >
+                    <i class="fas fa-folder-open"></i>
+                    Sélectionner un fichier
+                </button>
+                
+                <p class="text-xs text-gray-500 mt-4">
+                    Taille max: 50 MB • Formats: CSV, XLSX, DOCX, PDF, TXT, TSV
+                </p>
+            </div>
+
+            <!-- Fichier sélectionné -->
+            <div id="fileSelected" class="hidden mt-6 p-4 bg-green-50 border border-green-200 rounded">
+                <p class="text-sm text-green-800">
+                    <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                    <span id="fileName">Fichier sélectionné</span>
+                </p>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="flex justify-center gap-3 mt-6">
+                <button 
+                    type="submit" 
+                    id="submitBtn"
+                    class="hidden px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                >
+                    <i class="fas fa-arrow-right mr-2"></i>Importer maintenant
+                </button>
+                <button 
+                    type="button"
+                    onclick="resetForm()"
+                    id="resetBtn"
+                    class="hidden px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                    <i class="fas fa-times mr-2"></i>Annuler
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- ÉTAPE 3: Format requis -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-info-circle text-blue-600 mr-2"></i>Format requis
+        </h3>
+        
+        <p class="text-sm text-gray-600 mb-4">
+            Votre fichier doit contenir une ligne d'en-tête avec les colonnes suivantes :
+        </p>
+
+        <div class="bg-gray-50 p-4 rounded overflow-x-auto mb-4">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200">
+                        <th class="text-left py-2 px-3 font-semibold text-gray-700">Colonne</th>
+                        <th class="text-left py-2 px-3 font-semibold text-gray-700">Accepte</th>
+                        <th class="text-left py-2 px-3 font-semibold text-gray-700">Exemple</th>
+                        <th class="text-left py-2 px-3 font-semibold text-gray-700">Obligatoire?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b border-gray-100">
+                        <td class="py-3 px-3"><code class="bg-white px-2 py-1 rounded text-purple-600">name</code></td>
+                        <td class="py-3 px-3 text-gray-600">product_name, titre</td>
+                        <td class="py-3 px-3 text-gray-600">Téléphone Samsung S24</td>
+                        <td class="py-3 px-3"><span class="text-red-600 font-semibold">OUI</span></td>
+                    </tr>
+                    <tr class="border-b border-gray-100">
+                        <td class="py-3 px-3"><code class="bg-white px-2 py-1 rounded text-purple-600">price</code></td>
+                        <td class="py-3 px-3 text-gray-600">prix, product_price</td>
+                        <td class="py-3 px-3 text-gray-600">99.99</td>
+                        <td class="py-3 px-3"><span class="text-red-600 font-semibold">OUI</span></td>
+                    </tr>
+                    <tr class="border-b border-gray-100">
+                        <td class="py-3 px-3"><code class="bg-white px-2 py-1 rounded text-purple-600">category</code></td>
+                        <td class="py-3 px-3 text-gray-600">categorie, category_id</td>
+                        <td class="py-3 px-3 text-gray-600">Électronique</td>
+                        <td class="py-3 px-3"><span class="text-gray-600">Non (défaut: Autres)</span></td>
+                    </tr>
+                    <tr class="border-b border-gray-100">
+                        <td class="py-3 px-3"><code class="bg-white px-2 py-1 rounded text-purple-600">description</code></td>
+                        <td class="py-3 px-3 text-gray-600">descriptif</td>
+                        <td class="py-3 px-3 text-gray-600">Smartphone 5G dernière génération</td>
+                        <td class="py-3 px-3"><span class="text-gray-600">Non</span></td>
+                    </tr>
+                    <tr class="border-b border-gray-100">
+                        <td class="py-3 px-3"><code class="bg-white px-2 py-1 rounded text-purple-600">quantity</code></td>
+                        <td class="py-3 px-3 text-gray-600">stock, quantite</td>
+                        <td class="py-3 px-3 text-gray-600">50</td>
+                        <td class="py-3 px-3"><span class="text-gray-600">Non (défaut: 0)</span></td>
+                    </tr>
+                    <tr class="border-b border-gray-100">
+                        <td class="py-3 px-3"><code class="bg-white px-2 py-1 rounded text-purple-600">compare_price</code></td>
+                        <td class="py-3 px-3 text-gray-600">prix_compare</td>
+                        <td class="py-3 px-3 text-gray-600">129.99</td>
+                        <td class="py-3 px-3"><span class="text-gray-600">Non</span></td>
+                    </tr>
+                    <tr class="border-b border-gray-100">
+                        <td class="py-3 px-3"><code class="bg-white px-2 py-1 rounded text-purple-600">is_active</code></td>
+                        <td class="py-3 px-3 text-gray-600">actif, enabled</td>
+                        <td class="py-3 px-3 text-gray-600">true / false</td>
+                        <td class="py-3 px-3"><span class="text-gray-600">Non (défaut: true)</span></td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 px-3"><code class="bg-white px-2 py-1 rounded text-purple-600">is_featured</code></td>
+                        <td class="py-3 px-3 text-gray-600">en_vedette, featured</td>
+                        <td class="py-3 px-3 text-gray-600">true / false</td>
+                        <td class="py-3 px-3"><span class="text-gray-600">Non (défaut: false)</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bg-yellow-50 border border-yellow-200 p-4 rounded">
+            <p class="text-sm text-yellow-800">
+                <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                <strong>Note:</strong> Les noms de colonnes ne sont pas sensibles à la casse. 
+                "Nom du produit", "name", "Product Name" sont tous acceptés.
+            </p>
+        </div>
+    </div>
+
+    <!-- ÉTAPE 4: Exemples -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-download text-blue-600 mr-2"></i>Télécharger un modèle
+        </h3>
+        
+        <p class="text-sm text-gray-600 mb-4">
+            Choisissez un format et téléchargez un exemple de fichier :
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- CSV -->
+            <div class="border border-gray-200 p-4 rounded-lg hover:border-purple-400 hover:shadow transition cursor-pointer"
+                 onclick="downloadTemplate('csv')">
+                <div class="text-center">
+                    <i class="fas fa-file-csv text-blue-600 text-3xl mb-2"></i>
+                    <h4 class="font-semibold text-gray-800 text-sm">Modèle CSV</h4>
+                    <p class="text-xs text-gray-500 mt-2">Format texte simple</p>
+                    <button type="button" class="mt-3 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200">
+                        <i class="fas fa-download mr-1"></i>Télécharger
+                    </button>
+                </div>
+            </div>
+
+            <!-- XLSX -->
+            <div class="border border-gray-200 p-4 rounded-lg hover:border-green-400 hover:shadow transition cursor-pointer"
+                 onclick="downloadTemplate('xlsx')">
+                <div class="text-center">
+                    <i class="fas fa-file-excel text-green-600 text-3xl mb-2"></i>
+                    <h4 class="font-semibold text-gray-800 text-sm">Modèle Excel</h4>
+                    <p class="text-xs text-gray-500 mt-2">Format professionnel</p>
+                    <button type="button" class="mt-3 px-3 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200">
+                        <i class="fas fa-download mr-1"></i>Télécharger
+                    </button>
+                </div>
+            </div>
+
+            <!-- TSV -->
+            <div class="border border-gray-200 p-4 rounded-lg hover:border-orange-400 hover:shadow transition cursor-pointer"
+                 onclick="downloadTemplate('tsv')">
+                <div class="text-center">
+                    <i class="fas fa-file text-orange-600 text-3xl mb-2"></i>
+                    <h4 class="font-semibold text-gray-800 text-sm">Modèle TSV</h4>
+                    <p class="text-xs text-gray-500 mt-2">Tab-Separated Values</p>
+                    <button type="button" class="mt-3 px-3 py-1 bg-orange-100 text-orange-700 rounded text-xs hover:bg-orange-200">
+                        <i class="fas fa-download mr-1"></i>Télécharger
+                    </button>
+                </div>
+            </div>
+
+            <!-- Google Sheets -->
+            <div class="border border-gray-200 p-4 rounded-lg hover:border-red-400 hover:shadow transition cursor-pointer">
+                <div class="text-center">
+                    <i class="fas fa-table text-red-600 text-3xl mb-2"></i>
+                    <h4 class="font-semibold text-gray-800 text-sm">Google Sheets</h4>
+                    <p class="text-xs text-gray-500 mt-2">Créer en ligne</p>
+                    <a href="https://docs.google.com/spreadsheets/d/1_template_link/edit?usp=sharing" 
+                       target="_blank"
+                       class="mt-3 px-3 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 inline-block">
+                        <i class="fas fa-external-link-alt mr-1"></i>Ouvrir
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ÉTAPE 5: Astuces -->
+    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-indigo-900 mb-3">
+            <i class="fas fa-lightbulb text-indigo-600 mr-2"></i>Astuces d'import
+        </h3>
+        <ul class="space-y-2 text-sm text-indigo-800">
+            <li><i class="fas fa-check text-indigo-600 mr-2"></i><strong>Vérifiez vos données:</strong> Supprimez les lignes vides ou en double avant import</li>
+            <li><i class="fas fa-check text-indigo-600 mr-2"></i><strong>Prix valides:</strong> Utilisez format décimal (99.99, pas 99,99)</li>
+            <li><i class="fas fa-check text-indigo-600 mr-2"></i><strong>Catégories:</strong> Créez-les simplement en les nommant. Elles seront créées auto.</li>
+            <li><i class="fas fa-check text-indigo-600 mr-2"></i><strong>Images:</strong> Ajoutez-les manuellement après import</li>
+            <li><i class="fas fa-check text-indigo-600 mr-2"></i><strong>Stock initiaux:</strong> Vous pouvez les ajouter maintenant ou plus tard</li>
+        </ul>
+    </div>
+
+</div>
+
+<script>
+// Gestion du fichier
+document.getElementById('catalogFile').addEventListener('change', function(e) {
+    if (this.files.length > 0) {
+        const file = this.files[0];
+        const fileName = file.name;
+        const fileSize = (file.size / 1024 / 1024).toFixed(2);
+        
+        document.getElementById('fileName').textContent = `${fileName} (${fileSize} MB)`;
+        document.getElementById('fileSelected').classList.remove('hidden');
+        document.getElementById('submitBtn').classList.remove('hidden');
+        document.getElementById('resetBtn').classList.remove('hidden');
+    }
+});
+
+// Drag and drop
+const uploadZone = document.querySelector('form');
+uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('border-purple-500', 'bg-purple-50');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('border-purple-500', 'bg-purple-50');
+});
+
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('border-purple-500', 'bg-purple-50');
+    
+    if (e.dataTransfer.files.length > 0) {
+        document.getElementById('catalogFile').files = e.dataTransfer.files;
+        const event = new Event('change', { bubbles: true });
+        document.getElementById('catalogFile').dispatchEvent(event);
+    }
+});
+
+// Réinitialiser le formulaire
+function resetForm() {
+    document.getElementById('catalogFile').value = '';
+    document.getElementById('fileSelected').classList.add('hidden');
+    document.getElementById('submitBtn').classList.add('hidden');
+    document.getElementById('resetBtn').classList.add('hidden');
+}
+
+// Télécharger un modèle
+function downloadTemplate(format) {
+    const templates = {
+        csv: "name,price,category,description,quantity,compare_price,is_active\nProduit 1,100,Catégorie A,Description produit 1,50,120,true\nProduit 2,200,Catégorie B,Description produit 2,30,250,true",
+        xlsx: "Utiliser: https://docs.google.com/spreadsheets/d/template",
+        tsv: "name\tprice\tcategory\tdescription\tquantity\tcompare_price\tis_active\nProduit 1\t100\tCatégorie A\tDescription produit 1\t50\t120\ttrue",
+    };
+    
+    if (format === 'xlsx') {
+        // Rediriger vers download Excel en base64 ou backend
+        alert('Téléchargement Excel - Implémentation backend requise');
+        return;
+    }
+    
+    const content = templates[format] || '';
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `catalog_template.${format === 'tsv' ? 'tsv' : format === 'csv' ? 'csv' : 'txt'}`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+</script>
+
+<style>
+form {
+    transition: all 0.3s ease;
+}
+
+form:has(input[type="file"][disabled]) {
+    opacity: 0.5;
+}
+</style>
+{% endblock %}
