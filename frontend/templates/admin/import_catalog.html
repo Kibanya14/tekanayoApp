@@ -1,0 +1,489 @@
+{% extends "admin/basee.html" %}
+
+{% block title %}Import Catalogue Tekanayo{% endblock %}
+{% block header_title %}Importer le catalogue Tekanayo{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- ÉTAPE 1: Header Information -->
+    <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+                <i class="fas fa-cloud-upload-alt text-indigo-600 text-3xl"></i>
+            </div>
+            <div class="flex-grow">
+                <h3 class="text-lg font-semibold text-indigo-900 mb-2">Importer le catalogue en masse</h3>
+                <p class="text-sm text-indigo-800">
+                    Chargez des centaines de produits en quelques secondes. Formats supportés: 
+                    <strong>Excel, CSV, Word, PDF, TSV</strong>
+                </p>
+                <div class="flex gap-2 mt-3 flex-wrap">
+                    <span class="inline-flex items-center px-3 py-1 bg-white/60 rounded-full text-xs font-medium text-indigo-900">
+                        <i class="fas fa-file-excel text-green-600 mr-1"></i> Excel
+                    </span>
+                    <span class="inline-flex items-center px-3 py-1 bg-white/60 rounded-full text-xs font-medium text-indigo-900">
+                        <i class="fas fa-file-csv text-blue-600 mr-1"></i> CSV
+                    </span>
+                    <span class="inline-flex items-center px-3 py-1 bg-white/60 rounded-full text-xs font-medium text-indigo-900">
+                        <i class="fas fa-file-word text-blue-600 mr-1"></i> Word
+                    </span>
+                    <span class="inline-flex items-center px-3 py-1 bg-white/60 rounded-full text-xs font-medium text-indigo-900">
+                        <i class="fas fa-file-pdf text-red-600 mr-1"></i> PDF
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Colonne gauche: Upload -->
+        <div class="lg:col-span-2">
+            <!-- Zone d'upload -->
+            <div class="bg-white rounded-lg shadow-md p-8 border-2 border-dashed border-indigo-300 hover:border-indigo-500 transition">
+                <form action="{{ url_for('admin_import_catalog') }}" method="POST" enctype="multipart/form-data" id="importForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="text-center">
+                        <div class="mb-4">
+                            <i class="fas fa-cloud-upload-alt text-indigo-600 text-6xl"></i>
+                        </div>
+                        
+                        <h4 class="text-xl font-semibold text-gray-800 mb-2">Déposer un fichier ici</h4>
+                        <p class="text-gray-600 mb-4 text-sm">ou cliquer pour parcourir</p>
+                        
+                        <input 
+                            type="file" 
+                            name="file" 
+                            id="catalogFile"
+                            accept=".csv,.xlsx,.xlsm,.xltx,.xltm,.docx,.pdf,.txt,.tsv"
+                            class="hidden"
+                            required
+                        >
+                        
+                        <button 
+                            type="button" 
+                            onclick="document.getElementById('catalogFile').click()"
+                            class="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition inline-flex items-center gap-2 font-medium"
+                        >
+                            <i class="fas fa-folder-open"></i>
+                            Sélectionner un fichier
+                        </button>
+                        
+                        <p class="text-xs text-gray-500 mt-4">
+                            Taille max: 100 MB
+                        </p>
+                    </div>
+
+                    <!-- Fichier sélectionné -->
+                    <div id="fileSelected" class="hidden mt-6 p-4 bg-green-50 border border-green-300 rounded-lg">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-check-circle text-green-600 text-xl mt-1"></i>
+                            <div class="flex-grow">
+                                <p class="text-sm font-medium text-green-900">Fichier prêt</p>
+                                <p class="text-sm text-green-800 mt-1">
+                                    <i class="fas fa-file mr-1"></i><span id="fileName">Fichier sélectionné</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="flex justify-center gap-3 mt-6">
+                        <button 
+                            type="submit" 
+                            id="submitBtn"
+                            class="hidden px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium inline-flex items-center gap-2"
+                        >
+                            <i class="fas fa-check"></i>Importer maintenant
+                        </button>
+                        <button 
+                            type="button"
+                            onclick="resetForm()"
+                            id="resetBtn"
+                            class="hidden px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium inline-flex items-center gap-2"
+                        >
+                            <i class="fas fa-times"></i>Annuler
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Info système -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                <p class="text-xs text-blue-800">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    <strong>Système:</strong> Les produits importés seront ajoutés à la boutique Tekanayo (Portail Principal).
+                    Les noms de colonnes sont flexibles et acceptent les variantes en français/anglais.
+                </p>
+            </div>
+        </div>
+
+        <!-- Colonne droite: Informations rapides -->
+        <div class="lg:col-span-1 space-y-4">
+            
+            <!-- Statistiques -->
+            <div class="bg-white rounded-lg shadow p-4 border-l-4 border-indigo-600">
+                <p class="text-xs text-gray-600 uppercase font-semibold mb-1">Produits en catalogue</p>
+                <p class="text-3xl font-bold text-indigo-600">
+                    {% if total_products %}{{ total_products }}{% else %}0{% endif %}
+                </p>
+            </div>
+
+            <!-- Formats acceptés -->
+            <div class="bg-white rounded-lg shadow p-4">
+                <h4 class="font-semibold text-gray-800 mb-3 text-sm">
+                    <i class="fas fa-check-square text-green-600 mr-2"></i>Formats acceptés
+                </h4>
+                <ul class="space-y-2 text-xs text-gray-700">
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> .xlsx, .xls (Excel)
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> .csv (Comma-Separated)
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> .docx (Word)
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> .pdf
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> .tsv (Tab-Separated)
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fas fa-check text-green-500"></i> .txt
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Astuces rapides -->
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <h4 class="font-semibold text-amber-900 mb-2 text-sm">
+                    <i class="fas fa-lightbulb text-amber-600 mr-2"></i>Astuces
+                </h4>
+                <ul class="space-y-1 text-xs text-amber-800">
+                    <li>• Max 10,000 produits par import</li>
+                    <li>• Doublons détectés auto</li>
+                    <li>• Catégories créées auto</li>
+                    <li>• Validation avant insertion</li>
+                </ul>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ÉTAPE 2: Colonnes acceptées -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-table text-indigo-600 mr-2"></i>Colonnes reconnues
+        </h3>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b-2 border-indigo-200 bg-indigo-50">
+                        <th class="text-left py-3 px-4 font-semibold text-indigo-900">Colonne primaire</th>
+                        <th class="text-left py-3 px-4 font-semibold text-indigo-900">Variantes acceptées</th>
+                        <th class="text-left py-3 px-4 font-semibold text-indigo-900">Type</th>
+                        <th class="text-left py-3 px-4 font-semibold text-indigo-900">Requis?</th>
+                        <th class="text-left py-3 px-4 font-semibold text-indigo-900">Exemple</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4"><code class="bg-indigo-100 px-2 py-1 rounded text-indigo-700 font-mono">name</code></td>
+                        <td class="py-3 px-4 text-gray-600">product_name, titre</td>
+                        <td class="py-3 px-4 text-gray-600">Texte</td>
+                        <td class="py-3 px-4"><span class="text-red-600 font-bold">✓ OUI</span></td>
+                        <td class="py-3 px-4 text-gray-600">Téléphone Samsung</td>
+                    </tr>
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4"><code class="bg-indigo-100 px-2 py-1 rounded text-indigo-700 font-mono">price</code></td>
+                        <td class="py-3 px-4 text-gray-600">prix, product_price</td>
+                        <td class="py-3 px-4 text-gray-600">Nombre</td>
+                        <td class="py-3 px-4"><span class="text-red-600 font-bold">✓ OUI</span></td>
+                        <td class="py-3 px-4 text-gray-600">99.99</td>
+                    </tr>
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4"><code class="bg-indigo-100 px-2 py-1 rounded text-indigo-700 font-mono">category</code></td>
+                        <td class="py-3 px-4 text-gray-600">categorie, category_id</td>
+                        <td class="py-3 px-4 text-gray-600">Texte</td>
+                        <td class="py-3 px-4"><span class="text-gray-500">Optionnel</span></td>
+                        <td class="py-3 px-4 text-gray-600">Électronique</td>
+                    </tr>
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4"><code class="bg-indigo-100 px-2 py-1 rounded text-indigo-700 font-mono">description</code></td>
+                        <td class="py-3 px-4 text-gray-600">descriptif</td>
+                        <td class="py-3 px-4 text-gray-600">Texte</td>
+                        <td class="py-3 px-4"><span class="text-gray-500">Optionnel</span></td>
+                        <td class="py-3 px-4 text-gray-600">Meilleur prix...</td>
+                    </tr>
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4"><code class="bg-indigo-100 px-2 py-1 rounded text-indigo-700 font-mono">quantity</code></td>
+                        <td class="py-3 px-4 text-gray-600">stock, quantite</td>
+                        <td class="py-3 px-4 text-gray-600">Nombre entier</td>
+                        <td class="py-3 px-4"><span class="text-gray-500">Optionnel</span></td>
+                        <td class="py-3 px-4 text-gray-600">50</td>
+                    </tr>
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4"><code class="bg-indigo-100 px-2 py-1 rounded text-indigo-700 font-mono">compare_price</code></td>
+                        <td class="py-3 px-4 text-gray-600">prix_compare, prix_barré</td>
+                        <td class="py-3 px-4 text-gray-600">Nombre</td>
+                        <td class="py-3 px-4"><span class="text-gray-500">Optionnel</span></td>
+                        <td class="py-3 px-4 text-gray-600">129.99</td>
+                    </tr>
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4"><code class="bg-indigo-100 px-2 py-1 rounded text-indigo-700 font-mono">is_active</code></td>
+                        <td class="py-3 px-4 text-gray-600">actif, enabled</td>
+                        <td class="py-3 px-4 text-gray-600">Booléen</td>
+                        <td class="py-3 px-4"><span class="text-gray-500">Optionnel</span></td>
+                        <td class="py-3 px-4 text-gray-600">true</td>
+                    </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3 px-4"><code class="bg-indigo-100 px-2 py-1 rounded text-indigo-700 font-mono">is_featured</code></td>
+                        <td class="py-3 px-4 text-gray-600">en_vedette, featured</td>
+                        <td class="py-3 px-4 text-gray-600">Booléen</td>
+                        <td class="py-3 px-4"><span class="text-gray-500">Optionnel</span></td>
+                        <td class="py-3 px-4 text-gray-600">false</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+            <i class="fas fa-info-circle text-yellow-600 mr-2"></i>
+            Les noms de colonnes ne sont PAS sensibles à la casse. 
+            <strong>"Name", "name", "NAME", "Nom du produit"</strong> sont tous acceptés.
+        </div>
+    </div>
+
+    <!-- ÉTAPE 3: Modèles -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-download text-indigo-600 mr-2"></i>Modèles de fichiers
+        </h3>
+        
+        <p class="text-sm text-gray-600 mb-6">
+            Téléchargez un modèle pré-formaté pour commencer:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- CSV Template -->
+            <div class="border-2 border-gray-200 p-5 rounded-lg hover:border-indigo-400 hover:shadow-lg transition cursor-pointer group"
+                 onclick="downloadTemplate('csv')">
+                <div class="text-center">
+                    <i class="fas fa-file-csv text-blue-600 text-4xl mb-3 group-hover:scale-110 transition"></i>
+                    <h4 class="font-semibold text-gray-800 text-sm mb-1">CSV Template</h4>
+                    <p class="text-xs text-gray-500 mb-4">Format texte universel</p>
+                    <span class="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition font-medium text-xs">
+                        <i class="fas fa-download mr-1"></i>Télécharger
+                    </span>
+                </div>
+            </div>
+
+            <!-- XLSX Template -->
+            <div class="border-2 border-gray-200 p-5 rounded-lg hover:border-green-400 hover:shadow-lg transition cursor-pointer group"
+                 onclick="downloadTemplate('xlsx')">
+                <div class="text-center">
+                    <i class="fas fa-file-excel text-green-600 text-4xl mb-3 group-hover:scale-110 transition"></i>
+                    <h4 class="font-semibold text-gray-800 text-sm mb-1">Excel Template</h4>
+                    <p class="text-xs text-gray-500 mb-4">Format professionnel</p>
+                    <span class="inline-block px-4 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition font-medium text-xs">
+                        <i class="fas fa-download mr-1"></i>Télécharger
+                    </span>
+                </div>
+            </div>
+
+            <!-- TSV Template -->
+            <div class="border-2 border-gray-200 p-5 rounded-lg hover:border-orange-400 hover:shadow-lg transition cursor-pointer group"
+                 onclick="downloadTemplate('tsv')">
+                <div class="text-center">
+                    <i class="fas fa-file text-orange-600 text-4xl mb-3 group-hover:scale-110 transition"></i>
+                    <h4 class="font-semibold text-gray-800 text-sm mb-1">TSV Template</h4>
+                    <p class="text-xs text-gray-500 mb-4">Tab-Separated Values</p>
+                    <span class="inline-block px-4 py-2 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition font-medium text-xs">
+                        <i class="fas fa-download mr-1"></i>Télécharger
+                    </span>
+                </div>
+            </div>
+
+            <!-- Example Data -->
+            <div class="border-2 border-gray-200 p-5 rounded-lg hover:border-purple-400 hover:shadow-lg transition cursor-pointer group"
+                 onclick="showExampleData()">
+                <div class="text-center">
+                    <i class="fas fa-eye text-purple-600 text-4xl mb-3 group-hover:scale-110 transition"></i>
+                    <h4 class="font-semibold text-gray-800 text-sm mb-1">Données exemple</h4>
+                    <p class="text-xs text-gray-500 mb-4">Voir un exemple</p>
+                    <span class="inline-block px-4 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition font-medium text-xs">
+                        <i class="fas fa-eye mr-1"></i>Aperçu
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ÉTAPE 4: Bonnes pratiques -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+            <h4 class="font-semibold text-green-900 mb-3 flex items-center">
+                <i class="fas fa-check-circle text-green-600 mr-2 text-xl"></i>À faire
+            </h4>
+            <ul class="space-y-2 text-sm text-green-800">
+                <li class="flex gap-2">
+                    <i class="fas fa-check text-green-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Vérifier les doublons avant import</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fas fa-check text-green-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Utiliser prix décimaux: 99.99 (pas 99,99)</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fas fa-check text-green-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Catégories seront créées auto si manquantes</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fas fa-check text-green-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Supprimer les lignes vides</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fas fa-check text-green-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Sauvegarder l'original avant modification</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h4 class="font-semibold text-red-900 mb-3 flex items-center">
+                <i class="fas fa-times-circle text-red-600 mr-2 text-xl"></i>À éviter
+            </h4>
+            <ul class="space-y-2 text-sm text-red-800">
+                <li class="flex gap-2">
+                    <i class="fas fa-times text-red-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Caractères spéciaux dans les noms</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fas fa-times text-red-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Prix négatifs ou illégaux</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fas fa-times text-red-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Espaces inutiles en début/fin</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fas fa-times text-red-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Fichiers trop volumineux (>100MB)</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fas fa-times text-red-600 flex-shrink-0 mt-0.5"></i>
+                    <span>Importer sans vérifier les données</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal exemple -->
+<div id="exampleModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">Données exemple</h3>
+            <button onclick="document.getElementById('exampleModal').classList.add('hidden')" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="overflow-x-auto text-sm">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="border border-gray-300 px-3 py-2 text-left">name</th>
+                        <th class="border border-gray-300 px-3 py-2 text-left">price</th>
+                        <th class="border border-gray-300 px-3 py-2 text-left">category</th>
+                        <th class="border border-gray-300 px-3 py-2 text-left">quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="border border-gray-300 px-3 py-2">Téléphone Samsung</td><td class="border border-gray-300 px-3 py-2">99.99</td><td class="border border-gray-300 px-3 py-2">Électronique</td><td class="border border-gray-300 px-3 py-2">50</td></tr>
+                    <tr><td class="border border-gray-300 px-3 py-2">Laptop HP</td><td class="border border-gray-300 px-3 py-2">799.99</td><td class="border border-gray-300 px-3 py-2">Électronique</td><td class="border border-gray-300 px-3 py-2">25</td></tr>
+                    <tr><td class="border border-gray-300 px-3 py-2">T-Shirt Coton</td><td class="border border-gray-300 px-3 py-2">19.99</td><td class="border border-gray-300 px-3 py-2">Vêtements</td><td class="border border-gray-300 px-3 py-2">100</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Gestion du fichier
+document.getElementById('catalogFile')?.addEventListener('change', function(e) {
+    if (this.files.length > 0) {
+        const file = this.files[0];
+        const fileName = file.name;
+        const fileSize = (file.size / 1024 / 1024).toFixed(2);
+        
+        document.getElementById('fileName').textContent = `${fileName} (${fileSize} MB)`;
+        document.getElementById('fileSelected').classList.remove('hidden');
+        document.getElementById('submitBtn').classList.remove('hidden');
+        document.getElementById('resetBtn').classList.remove('hidden');
+    }
+});
+
+// Drag and drop
+const uploadZone = document.getElementById('importForm');
+if (uploadZone) {
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('border-indigo-500', 'bg-indigo-50');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+        
+        if (e.dataTransfer.files.length > 0) {
+            document.getElementById('catalogFile').files = e.dataTransfer.files;
+            const event = new Event('change', { bubbles: true });
+            document.getElementById('catalogFile').dispatchEvent(event);
+        }
+    });
+}
+
+// Réinitialiser
+function resetForm() {
+    document.getElementById('catalogFile').value = '';
+    document.getElementById('fileSelected').classList.add('hidden');
+    document.getElementById('submitBtn').classList.add('hidden');
+    document.getElementById('resetBtn').classList.add('hidden');
+}
+
+// Télécharger modèle
+function downloadTemplate(format) {
+    const templates = {
+        csv: "name,price,category,description,quantity,compare_price,is_active\nTéléphone Samsung,99.99,Électronique,Smartphone 5G,50,120,true\nLaptop HP,799.99,Électronique,Ordinateur portable,25,950,true",
+        tsv: "name\tprice\tcategory\tdescription\tquantity\tcompare_price\tis_active\nTéléphone Samsung\t99.99\tÉlectronique\tSmartphone 5G\t50\t120\ttrue",
+    };
+    
+    const content = templates[format] || '';
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `catalog_template.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+
+// Afficher exemple
+function showExampleData() {
+    document.getElementById('exampleModal').classList.remove('hidden');
+}
+</script>
+{% endblock %}
