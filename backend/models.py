@@ -381,6 +381,7 @@ class SellerShop(db.Model):
     invoice_theme = db.Column(db.String(30), default="classic")
     category_niche = db.Column(db.String(60), default="shopdivers")
     is_active = db.Column(db.Boolean, default=True)
+    is_portal_shop = db.Column(db.Boolean, default=False)  # Boutique portail Tekanayo
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Champs pour la validation des documents (NOUVEAUX)
@@ -430,11 +431,16 @@ class SellerProduct(db.Model):
     category = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     price = db.Column(db.Float, nullable=False, default=0)
+    compare_price = db.Column(db.Float)  # Prix de comparaison (barré)
     quantity = db.Column(db.Integer, default=0)
     image_url = db.Column(db.String(255))
     is_promoted = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
+    is_featured = db.Column(db.Boolean, default=False)  # Produit mis en avant
+    sku = db.Column(db.String(100), unique=True, sparse=True)  # Code SKU optionnel
+    import_batch_id = db.Column(db.String(100))  # ID du batch d'import
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class StockHistory(db.Model):
