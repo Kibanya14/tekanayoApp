@@ -4,14 +4,21 @@ import secrets
 import time
 from datetime import datetime, timedelta
 from functools import wraps
+from io import StringIO, TextIOWrapper
+import csv
+import json
+from werkzeug.utils import secure_filename
 
 from flask import Flask, flash, jsonify, redirect, g, render_template, request, session, url_for, send_file, send_from_directory
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
-from sqlalchemy import or_
+from sqlalchemy import or_, create_engine, text
+from sqlalchemy.orm import joinedload
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-from werkzeug.utils import secure_filename
+from openpyxl import load_workbook
+from PyPDF2 import PdfReader
+from docx import Document
 
 from backend.models import (
     PlatformAccessRequest,
@@ -27,6 +34,7 @@ from backend.models import (
     SellerOrder,
     SellerProduct,
     SellerShop,
+    Category,
     SellerSubscription,
     SellerPayment,
     SellerPaymentTask,
@@ -225,6 +233,14 @@ NICHE_CHOICES = [
     ("autres", "Autres"),
 ]
 
+SHOP_THEMES = {
+    "classic": "Classique",
+    "modern": "Moderne",
+    "minimal": "Minimal",
+    "boutique": "Boutique raffinée",
+    "market": "Marché coloré",
+}
+
 INVOICE_THEMES = {
     "classic": "Classique pro",
     "modern": "Moderne",
@@ -264,6 +280,185 @@ SELLER_PERMISSION_LABELS = {
 def _slugify(value: str) -> str:
     value = re.sub(r"[^a-zA-Z0-9]+", "-", (value or "").strip().lower()).strip("-")
     return value or f"shop-{secrets.token_hex(2)}"
+
+# Fonctions utilitaires pour l'import de catalogue
+def _normalize_key(key: str) -> str:
+    value = str(key or '').strip().lower()
+    value = re.sub(r'[^a-z0-9]+', '_', value)
+    return value.strip('_')
+
+def _normalize_row(row: dict) -> dict:
+    normalized = {}
+    for key, value in (row or {}).items():
+        if key is None:
+            continue
+        norm = _normalize_key(key)
+        if not norm:
+            continue
+        normalized[norm] = value
+    return normalized
+
+def _row_get(row: dict, keys: tuple[str, ...]):
+    for key in keys:
+        value = row.get(key)
+        if value is None:
+            continue
+        if isinstance(value, str) and not value.strip():
+            continue
+        return value
+    return None
+
+def _clean_number(value):
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip()
+    if not text:
+        return None
+    text = text.replace(' ', '').replace(',', '.')
+    text = re.sub(r'[^0-9\\.-]', '', text)
+    if not text or text in {'.', '-', '-.'}:
+        return None
+    try:
+        return float(text)
+    except Exception:
+        return None
+
+def _parse_int(value, default=0):
+    number = _clean_number(value)
+    if number is None:
+        return default
+    return int(number)
+
+def _parse_float(value, default=None):
+    number = _clean_number(value)
+    if number is None:
+        return default
+    return float(number)
+
+def _parse_bool(value, default=False):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in ('1', 'true', 'yes', 'y', 'oui', 'on', 'active', 'actif'):
+        return True
+    if text in ('0', 'false', 'no', 'non', 'off', 'inactive', 'inactif'):
+        return False
+    return default
+
+def _read_rows_from_file(file_storage):
+    if not file_storage or not file_storage.filename:
+        raise ValueError("Aucun fichier fourni.")
+    filename = secure_filename(file_storage.filename)
+    ext = os.path.splitext(filename)[1].lower()
+    def _rows_from_lines(lines):
+        if not lines:
+            return []
+        sample = "\\n".join(lines[:5])
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=";,|\\\\t")
+        except Exception:
+            dialect = csv.excel
+        reader = csv.reader(lines, dialect=dialect)
+        rows = list(reader)
+        if not rows:
+            return []
+        headers = [str(h).strip() if h is not None else '' for h in rows[0]]
+        data = []
+        for row in rows[1:]:
+            if not row:
+                continue
+            row_map = {}
+            for idx, header in enumerate(headers):
+                if not header:
+                    continue
+                value = row[idx] if idx < len(row) else None
+                row_map[header] = value
+            if any(v is not None and str(v).strip() != '' for v in row_map.values()):
+                data.append(row_map)
+        return data
+    if ext == '.csv':
+        text_stream = TextIOWrapper(file_storage.stream, encoding='utf-8-sig')
+        sample = text_stream.read(2048)
+        text_stream.seek(0)
+        try:
+            dialect = csv.Sniffer().sniff(sample)
+        except Exception:
+            dialect = csv.excel
+        reader = csv.DictReader(text_stream, dialect=dialect)
+        rows = []
+        for row in reader:
+            if not row:
+                continue
+            if any(v is not None and str(v).strip() != '' for v in row.values()):
+                rows.append(row)
+        return rows
+    if ext in ('.txt', '.tsv'):
+        file_storage.stream.seek(0)
+        text = file_storage.stream.read().decode('utf-8', errors='ignore')
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        return _rows_from_lines(lines)
+    if ext in ('.xlsx', '.xlsm', '.xltx', '.xltm'):
+        workbook = load_workbook(file_storage, read_only=True, data_only=True)
+        sheet = workbook.active
+        rows = list(sheet.iter_rows(values_only=True))
+        if not rows:
+            return []
+        headers = [str(h).strip() if h is not None else '' for h in rows[0]]
+        data = []
+        for row in rows[1:]:
+            if not row:
+                continue
+            row_map = {}
+            for idx, header in enumerate(headers):
+                if not header:
+                    continue
+                value = row[idx] if idx < len(row) else None
+                row_map[header] = value
+            if any(v is not None and str(v).strip() != '' for v in row_map.values()):
+                data.append(row_map)
+        return data
+    if ext == '.docx':
+        file_storage.stream.seek(0)
+        doc = Document(file_storage)
+        data = []
+        if doc.tables:
+            for table in doc.tables:
+                if not table.rows:
+                    continue
+                headers = [cell.text.strip() for cell in table.rows[0].cells]
+                for row in table.rows[1:]:
+                    row_map = {}
+                    for idx, cell in enumerate(row.cells):
+                        if idx >= len(headers):
+                            continue
+                        header = headers[idx]
+                        if not header:
+                            continue
+                        row_map[header] = cell.text.strip()
+                    if any(v is not None and str(v).strip() != '' for v in row_map.values()):
+                        data.append(row_map)
+        if not data:
+            lines = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+            return _rows_from_lines(lines)
+        return data
+    if ext == '.pdf':
+        file_storage.stream.seek(0)
+        reader = PdfReader(file_storage)
+        text_parts = []
+        for page in reader.pages:
+            content = page.extract_text() or ''
+            if content.strip():
+                text_parts.append(content)
+        text = "\\n".join(text_parts).strip()
+        if not text:
+            return []
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        return _rows_from_lines(lines)
+    raise ValueError("Format non supporté. Utilisez CSV, XLSX, DOCX, PDF, TXT ou TSV.")
 
 
 def _unique_slug(base: str) -> str:
@@ -962,7 +1157,40 @@ def create_app():
         }
 
     def _portal_shop():
-        return SellerShop.query.filter_by(is_active=True).first() or SellerShop.query.first()
+        return (
+            SellerShop.query.filter_by(is_portal_shop=True, is_active=True).first()
+            or SellerShop.query.filter_by(is_portal_shop=True).first()
+        )
+
+    def _ensure_portal_shop():
+        shop = _portal_shop()
+        if shop:
+            if not shop.is_active:
+                shop.is_active = True
+                db.session.commit()
+            return shop
+
+        settings = _get_platform_settings()
+        shop = SellerShop(
+            name=settings.platform_name or "Tekanayo App",
+            slug=_unique_slug("tekanayo-portal"),
+            owner_email=settings.contact_email or os.getenv("MAIL_USERNAME") or "portal@tekanayo.local",
+            support_email=settings.contact_email,
+            support_phone=settings.contact_phone,
+            logo_url=settings.portal_logo_url,
+            currency=settings.default_currency or settings.currency or "USD",
+            tax_rate=settings.tax_rate or 0.0,
+            shipping_cost=settings.shipping_cost or 0.0,
+            shipping_cost_out=settings.shipping_cost_out or 0.0,
+            exchange_rate_usd_cdf=settings.exchange_rate_usd_cdf or 2800.0,
+            category_niche="shopdivers",
+            subscription_status="active",
+            is_active=True,
+            is_portal_shop=True,
+        )
+        db.session.add(shop)
+        db.session.commit()
+        return shop
 
     def _portal_shop_context():
         platform_settings = _get_platform_settings()
@@ -1806,7 +2034,10 @@ def create_app():
         if portal_shop:
             products = SellerProduct.query.filter_by(shop_id=portal_shop.id).order_by(SellerProduct.created_at.desc()).all()
             orders = SellerOrder.query.filter_by(shop_id=portal_shop.id).order_by(SellerOrder.created_at.desc()).all()
-            categories = sorted({(p.category or "").strip() for p in products if (p.category or "").strip()})
+            categories = [
+                c.name
+                for c in Category.query.filter_by(shop_id=portal_shop.id, is_active=True).order_by(Category.name.asc()).all()
+            ]
         # Platform deliverers are not tied to any specific shop
         deliverers = PlatformDeliverer.query.order_by(PlatformDeliverer.created_at.desc()).all()
         portal_customers = PortalCustomer.query.order_by(PortalCustomer.created_at.desc()).all()
@@ -1974,6 +2205,71 @@ def create_app():
     @admin_required("manage_products")
     def tekanayo_admin_products():
         return _render_tekanayo_admin_page("products")
+
+    @app.route("/admin/catalog/import", methods=["GET"])
+    @admin_required("manage_products")
+    def admin_import_catalog_page():
+        shop = _ensure_portal_shop()
+        total_products = SellerProduct.query.filter_by(shop_id=shop.id).count() if shop else 0
+        last_import_result = session.pop("last_catalog_import_result", None)
+        return render_template(
+            "admin/import_catalog.html",
+            active_tab="products",
+            active_page="products",
+            portal_shop=shop,
+            total_products=total_products,
+            last_import_result=last_import_result,
+        )
+
+    @app.route("/admin/catalog/import", methods=["POST"])
+    @admin_required("manage_products")
+    def admin_import_catalog():
+        from backend.catalog_importer import CatalogImporter
+
+        shop = _ensure_portal_shop()
+
+        file = request.files.get("file") or request.files.get("catalog_file")
+        if not file or not file.filename:
+            flash("Aucun fichier sélectionné.", "error")
+            return redirect(request.referrer or url_for("tekanayo_admin_products"))
+
+        importer = CatalogImporter(shop)
+        import_results = importer.import_file(file)
+        session["last_catalog_import_result"] = {
+            "total_rows": import_results.get("total_rows", 0),
+            "successful": import_results.get("successful", 0),
+            "failed": import_results.get("failed", 0),
+            "created_count": len(import_results.get("created_products", [])),
+            "updated_count": len(import_results.get("updated_products", [])),
+            "errors": import_results.get("errors", [])[:8],
+            "warnings": import_results.get("warnings", [])[:5],
+            "batch_id": import_results.get("batch_id"),
+            "category_count": import_results.get("category_count", 0),
+        }
+        if import_results["successful"]:
+            success_message = (
+                f"Import catalogue réussi : {import_results['successful']} produit(s), "
+                f"{len(import_results['updated_products'])} mise(s) à jour, "
+                f"{len(import_results['created_products'])} création(s)."
+            )
+            if import_results.get("category_count"):
+                success_message += f" {import_results['category_count']} catégorie(s) reconnue(s)."
+            flash(success_message, "success")
+            record_activity(
+                f"Import catalogue Tekanayo ({import_results['successful']} produits)",
+                actor=current_user,
+                extra=f"batch_id={import_results['batch_id']}",
+            )
+        else:
+            message = import_results["errors"][0] if import_results["errors"] else "Aucun produit importé."
+            flash(f"Import catalogue impossible : {message}", "error")
+
+        for warning in import_results["warnings"][:3]:
+            flash(warning, "warning")
+        for error in import_results["errors"][:5]:
+            flash(error, "warning" if import_results["successful"] else "error")
+
+        return redirect(request.referrer or url_for("tekanayo_admin_products"))
 
     @app.route("/admin/orders")
     @admin_required("manage_orders")
@@ -2339,6 +2635,8 @@ def create_app():
         if not shop:
             flash("Aucune boutique portail active pour enregistrer un produit.", "error")
             return redirect(url_for("tekanayo_admin_products"))
+        # Supporte création ET mise à jour si product_id fourni
+        product_id = request.form.get("product_id")
         name = (request.form.get("name") or "").strip()
         category = (request.form.get("category") or "").strip()
         description = (request.form.get("description") or "").strip()
@@ -2347,7 +2645,35 @@ def create_app():
         if not name or not category or price <= 0:
             flash("Produit invalide: nom, catégorie et prix sont obligatoires.", "error")
             return redirect(url_for("tekanayo_admin_products"))
+
+        # Gérer l'image uploadée
         image = _save_uploaded_image(request.files.get("image_file"), "platform/products", seller_id=shop.id)
+
+        if product_id:
+            # Mise à jour
+            item = SellerProduct.query.get(int(product_id))
+            if not item:
+                flash("Produit introuvable.", "error")
+                return redirect(url_for("tekanayo_admin_products"))
+            if shop and item.shop_id != shop.id:
+                flash("Produit hors portail Tekanayo.", "error")
+                return redirect(url_for("tekanayo_admin_products"))
+
+            item.name = name
+            item.category = category
+            item.description = description or None
+            item.price = price
+            item.quantity = max(0, quantity)
+            if image:
+                item.image_url = image
+            item.is_promoted = (request.form.get("is_promoted") == "on")
+            item.is_active = (request.form.get("is_active") != "off")
+            db.session.add(item)
+            db.session.commit()
+            flash("Produit Tekanayo mis à jour.", "success")
+            return redirect(url_for("tekanayo_admin_products"))
+
+        # Création
         item = SellerProduct(
             shop_id=shop.id,
             name=name,
@@ -2989,6 +3315,8 @@ def create_app():
     @app.route("/vendeur/<slug>/subscription/payment/process", methods=["POST"])
     @seller_session_required
     def seller_payment_process(slug):
+        pass  # Implementation to be completed
+
         """Traiter le paiement de l'abonnement"""
         shop = SellerShop.query.filter_by(slug=slug).first_or_404()
         subscription = SellerSubscription.query.filter_by(shop_id=shop.id).first_or_404()
@@ -3177,7 +3505,12 @@ def create_app():
         shop.shipping_cost_out = _safe_float(request.form.get("shipping_cost_out"), 0.0)
         shop.exchange_rate_usd_cdf = _safe_float(request.form.get("exchange_rate_usd_cdf"), 2800.0)
         shop.invoice_theme = (request.form.get("invoice_theme") or "classic").strip().lower()
+        shop.shop_theme = (request.form.get("shop_theme") or "classic").strip().lower()
         shop.category_niche = (request.form.get("category_niche") or "shopdivers").strip().lower()
+        if shop.shop_theme not in SHOP_THEMES:
+            shop.shop_theme = "classic"
+        if shop.category_niche not in dict(NICHE_CHOICES):
+            shop.category_niche = "shopdivers"
         custom_domain = (request.form.get("custom_domain") or "").strip().lower()
         if custom_domain:
             conflict = SellerShop.query.filter(SellerShop.custom_domain == custom_domain, SellerShop.id != shop.id).first()
@@ -3369,6 +3702,75 @@ def create_app():
             return redirect_response
         return render_template("vendeur/products.html", shop=shop, admin=admin, active_page="products", **context)
 
+    @app.route("/vendeur/<slug>/products/import", methods=["GET", "POST"])
+    @app.route("/vendeur/<slug>/catalog/import", methods=["POST"])
+    @seller_session_required
+    def seller_import_catalog(slug):
+        from backend.catalog_importer import CatalogImporter
+
+        shop, admin, context, redirect_response = _seller_page_context(slug, required_permission="manage_products")
+        if redirect_response:
+            return redirect_response
+
+        import_results = None
+        if request.method == "POST":
+            file = request.files.get("file") or request.files.get("catalog_file")
+            if not file or not file.filename:
+                flash("Aucun fichier sélectionné.", "error")
+                return redirect(request.referrer or url_for("seller_import_catalog", slug=slug))
+
+            importer = CatalogImporter(shop)
+            import_results = importer.import_file(file)
+            if import_results["successful"]:
+                flash(
+                    f"Import catalogue réussi : {import_results['successful']} produit(s), "
+                    f"{len(import_results['updated_products'])} mise(s) à jour, "
+                    f"{len(import_results['created_products'])} création(s).",
+                    "success",
+                )
+                record_activity(
+                    f"Import catalogue vendeur ({import_results['successful']} produits)",
+                    actor=admin,
+                    extra=f"shop={shop.slug}; batch_id={import_results['batch_id']}",
+                )
+            else:
+                message = import_results["errors"][0] if import_results["errors"] else "Aucun produit importé."
+                flash(f"Import catalogue impossible : {message}", "error")
+
+            for warning in import_results["warnings"][:3]:
+                flash(warning, "warning")
+            for error in import_results["errors"][:5]:
+                flash(error, "warning" if import_results["successful"] else "error")
+
+        recent_imports = (
+            SellerProduct.query
+            .filter_by(shop_id=shop.id)
+            .filter(SellerProduct.import_batch_id.isnot(None))
+            .order_by(SellerProduct.updated_at.desc())
+            .limit(100)
+            .all()
+        )
+        unique_batches = {}
+        for product in recent_imports:
+            batch_id = product.import_batch_id
+            if batch_id not in unique_batches:
+                unique_batches[batch_id] = {
+                    "batch_id": batch_id,
+                    "count": 0,
+                    "created_at": product.updated_at,
+                }
+            unique_batches[batch_id]["count"] += 1
+
+        return render_template(
+            "vendeur/import_catalog.html",
+            shop=shop,
+            admin=admin,
+            active_page="products",
+            import_results=import_results,
+            import_history=list(unique_batches.values())[:10],
+            **context,
+        )
+
     @app.route("/vendeur/<slug>/orders")
     @seller_session_required
     def seller_orders_page(slug):
@@ -3411,13 +3813,120 @@ def create_app():
             return redirect_response
         return render_template("vendeur/clients.html", shop=shop, admin=admin, active_page="clients", **context)
 
-    @app.route("/vendeur/<slug>/categories")
+    def _get_category_icon_options(shop):
+        niche_icons = CATEGORY_NICHES.get((shop.category_niche or "shopdivers").strip().lower(), CATEGORY_NICHES["shopdivers"])
+        seen = set()
+        options = []
+        for icon in niche_icons:
+            icon_value = str(icon).strip()
+            if not icon_value:
+                continue
+            if not icon_value.startswith(("fa ", "fas ", "far ", "fal ", "fab ", "fad ")):
+                icon_value = f"fas {icon_value}"
+            if icon_value not in seen:
+                seen.add(icon_value)
+                label = icon_value.replace("fas ", "").replace("far ", "").replace("fal ", "").replace("fab ", "").replace("fad ", "").replace("fa-", "").replace("-", " ").title()
+                options.append((icon_value, label))
+        return options
+
+    @app.route("/vendeur/<slug>/categories", methods=["GET", "POST"])
     @seller_session_required
     def seller_categories_page(slug):
         shop, admin, context, redirect_response = _seller_page_context(slug, required_permission="manage_categories")
         if redirect_response:
             return redirect_response
-        return render_template("vendeur/categories.html", shop=shop, admin=admin, active_page="categories", **context)
+
+        if request.method == "POST":
+            name = (request.form.get("name") or "").strip()
+            category_id = request.form.get("category_id")
+            delete_id = request.form.get("delete_id")
+            category_ids = request.form.getlist("category_ids")
+            icon = (request.form.get("icon") or "").strip() or None
+            description = (request.form.get("description") or "").strip() or None
+            is_active = request.form.get("is_active", "true").strip().lower() != "false"
+
+            if delete_id:
+                category = Category.query.filter_by(id=delete_id, shop_id=shop.id).first()
+                if not category:
+                    flash("Catégorie introuvable.", "error")
+                elif category.products and len(category.products) > 0:
+                    flash("Impossible de supprimer une catégorie qui contient des produits.", "error")
+                else:
+                    db.session.delete(category)
+                    db.session.commit()
+                    flash("Catégorie supprimée.", "success")
+                return redirect(url_for("seller_categories_page", slug=slug))
+
+            if category_ids:
+                deleted = 0
+                skipped = 0
+                for raw_id in category_ids:
+                    category = Category.query.filter_by(id=raw_id, shop_id=shop.id).first()
+                    if not category:
+                        skipped += 1
+                        continue
+                    if category.products and len(category.products) > 0:
+                        skipped += 1
+                        continue
+                    db.session.delete(category)
+                    deleted += 1
+                db.session.commit()
+                if deleted:
+                    flash(f"{deleted} catégorie(s) supprimée(s).", "success")
+                if skipped:
+                    flash(f"{skipped} catégorie(s) non supprimée(s) car elles contiennent des produits ou sont introuvables.", "warning")
+                return redirect(url_for("seller_categories_page", slug=slug))
+
+            if category_id:
+                category = Category.query.filter_by(id=category_id, shop_id=shop.id).first()
+                if not category:
+                    flash("Catégorie introuvable.", "error")
+                    return redirect(url_for("seller_categories_page", slug=slug))
+                if not name:
+                    flash("Le nom de la catégorie est requis.", "error")
+                    return redirect(url_for("seller_categories_page", slug=slug))
+                duplicate = Category.query.filter(Category.shop_id == shop.id, Category.name == name, Category.id != category.id).first()
+                if duplicate:
+                    flash("Une catégorie portant ce nom existe déjà.", "error")
+                    return redirect(url_for("seller_categories_page", slug=slug))
+                category.name = name
+                category.description = description or None
+                category.icon = icon or category.icon
+                category.is_active = is_active
+                db.session.commit()
+                flash("Catégorie mise à jour.", "success")
+                return redirect(url_for("seller_categories_page", slug=slug))
+
+            if not name:
+                flash("Le nom de la catégorie est requis.", "error")
+                return redirect(url_for("seller_categories_page", slug=slug))
+            duplicate = Category.query.filter_by(shop_id=shop.id, name=name).first()
+            if duplicate:
+                flash("Une catégorie portant ce nom existe déjà.", "error")
+                return redirect(url_for("seller_categories_page", slug=slug))
+            icon_value = icon or (_get_category_icon_options(shop)[0][0] if _get_category_icon_options(shop) else "fas fa-tag")
+            category = Category(
+                shop_id=shop.id,
+                name=name,
+                description=description or None,
+                icon=icon_value,
+                is_active=is_active,
+            )
+            db.session.add(category)
+            db.session.commit()
+            flash("Nouvelle catégorie créée.", "success")
+            return redirect(url_for("seller_categories_page", slug=slug))
+
+        categories = Category.query.filter_by(shop_id=shop.id).order_by(Category.name.asc()).all()
+        return render_template(
+            "vendeur/categories.html",
+            shop=shop,
+            admin=admin,
+            categories=categories,
+            category_icons=_get_category_icon_options(shop),
+            active_page="categories",
+            **context,
+        )
 
     @app.route("/vendeur/<slug>/admins")
     @seller_session_required
@@ -3551,7 +4060,15 @@ def create_app():
         shop, admin, context, redirect_response = _seller_page_context(slug, required_permission="manage_settings")
         if redirect_response:
             return redirect_response
-        return render_template("vendeur/settings.html", shop=shop, admin=admin, active_page="settings", **context)
+        return render_template(
+            "vendeur/settings.html",
+            shop=shop,
+            admin=admin,
+            active_page="settings",
+            category_niches=NICHE_CHOICES,
+            shop_themes=SHOP_THEMES,
+            **context,
+        )
 
     @app.route("/vendeur/<slug>/about")
     @seller_session_required

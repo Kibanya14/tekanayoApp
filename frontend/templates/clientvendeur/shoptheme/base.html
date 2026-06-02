@@ -34,12 +34,99 @@
             --app-bg: #f3faf6;
             --app-outline: rgba(15, 23, 42, 0.08);
             --app-shadow: 0 25px 60px rgba(15, 23, 42, 0.12);
+            --app-overlay-1: rgba(16, 185, 129, 0.08);
+            --app-overlay-2: rgba(5, 150, 105, 0.08);
+            --app-overlay-3: rgba(16, 185, 129, 0.05);
         }
         .dark {
             --app-bg: #0b1220;
             --surface: #0f172a;
             --ink: #e5e7eb;
             --muted: #94a3b8;
+        }
+        body.theme-modern {
+            --brand-25: #eff6ff;
+            --brand-50: #e0f2fe;
+            --brand-100: #bae6fd;
+            --brand-200: #7dd3fc;
+            --brand-300: #38bdf8;
+            --brand-400: #0ea5e9;
+            --brand-500: #0284c7;
+            --brand-600: #0369a1;
+            --brand-700: #075985;
+            --brand-800: #0c4a6e;
+            --ink: #0f172a;
+            --muted: #475569;
+            --surface: #ffffff;
+            --app-bg: #eff6ff;
+            --app-outline: rgba(15, 23, 42, 0.08);
+            --app-shadow: 0 25px 60px rgba(15, 23, 42, 0.08);
+            --app-overlay-1: rgba(14, 165, 233, 0.08);
+            --app-overlay-2: rgba(14, 165, 233, 0.06);
+            --app-overlay-3: rgba(14, 165, 233, 0.04);
+        }
+        body.theme-minimal {
+            --brand-25: #f8fafc;
+            --brand-50: #f1f5f9;
+            --brand-100: #e2e8f0;
+            --brand-200: #cbd5e1;
+            --brand-300: #94a3b8;
+            --brand-400: #64748b;
+            --brand-500: #475569;
+            --brand-600: #334155;
+            --brand-700: #1e293b;
+            --brand-800: #0f172a;
+            --ink: #111827;
+            --muted: #475569;
+            --surface: #ffffff;
+            --app-bg: #f8fafc;
+            --app-outline: rgba(15, 23, 42, 0.08);
+            --app-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+            --app-overlay-1: rgba(71, 85, 105, 0.08);
+            --app-overlay-2: rgba(71, 85, 105, 0.05);
+            --app-overlay-3: rgba(71, 85, 105, 0.03);
+        }
+        body.theme-boutique {
+            --brand-25: #fdf4ff;
+            --brand-50: #f5d0fe;
+            --brand-100: #f0abfc;
+            --brand-200: #e879f9;
+            --brand-300: #d946ef;
+            --brand-400: #c026d3;
+            --brand-500: #9333ea;
+            --brand-600: #7e22ce;
+            --brand-700: #6d28d9;
+            --brand-800: #581c87;
+            --ink: #1f2937;
+            --muted: #4b5563;
+            --surface: #f8f5ff;
+            --app-bg: #faf5ff;
+            --app-outline: rgba(124, 58, 237, 0.15);
+            --app-shadow: 0 25px 80px rgba(124, 58, 237, 0.16);
+            --app-overlay-1: rgba(156, 46, 236, 0.08);
+            --app-overlay-2: rgba(156, 46, 236, 0.05);
+            --app-overlay-3: rgba(156, 46, 236, 0.03);
+        }
+        body.theme-market {
+            --brand-25: #fff7ed;
+            --brand-50: #ffedd5;
+            --brand-100: #fed7aa;
+            --brand-200: #fdba74;
+            --brand-300: #fb923c;
+            --brand-400: #f97316;
+            --brand-500: #ea580c;
+            --brand-600: #c2410c;
+            --brand-700: #9a3412;
+            --brand-800: #7c2d12;
+            --ink: #1f2937;
+            --muted: #4b5563;
+            --surface: #fffdf7;
+            --app-bg: #fff7ed;
+            --app-outline: rgba(249, 115, 22, 0.16);
+            --app-shadow: 0 25px 70px rgba(249, 115, 22, 0.14);
+            --app-overlay-1: rgba(249, 115, 22, 0.08);
+            --app-overlay-2: rgba(249, 115, 22, 0.05);
+            --app-overlay-3: rgba(249, 115, 22, 0.03);
         }
         body {
             background: radial-gradient(1200px 600px at 10% -10%, #d1fae5 0%, transparent 60%),
@@ -55,9 +142,9 @@
             content: "";
             position: fixed;
             inset: 0;
-            background-image: radial-gradient(circle at 20% 20%, rgba(5, 150, 105, 0.08), transparent 40%),
-                              radial-gradient(circle at 80% 10%, rgba(16, 185, 129, 0.08), transparent 45%),
-                              radial-gradient(circle at 50% 90%, rgba(5, 150, 105, 0.05), transparent 40%);
+            background-image: radial-gradient(circle at 20% 20%, var(--app-overlay-1), transparent 40%),
+                              radial-gradient(circle at 80% 10%, var(--app-overlay-2), transparent 45%),
+                              radial-gradient(circle at 50% 90%, var(--app-overlay-3), transparent 40%);
             pointer-events: none;
             z-index: 0;
         }
@@ -93,7 +180,7 @@
             border-bottom: 1px solid var(--app-outline);
         }
         .app-hero {
-            background: linear-gradient(130deg, #065f46 0%, #059669 50%, #10b981 100%);
+            background: linear-gradient(130deg, var(--brand-800) 0%, var(--brand-600) 50%, var(--brand-500) 100%);
             position: relative;
             overflow: hidden;
         }
@@ -299,7 +386,7 @@
         .hover\:text-purple-700:hover { color: var(--brand-700) !important; }
     </style>
 </head>
-<body class="min-h-screen {% if session.get('theme') == 'dark' %}dark{% endif %}">
+<body class="min-h-screen {{ shop.shop_theme or 'classic' }} {% if session.get('theme') == 'dark' %}dark{% endif %}">
     <!-- Navigation -->
     <div class="app-frame">
     <nav class="app-nav sticky top-0 z-50">

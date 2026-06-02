@@ -123,6 +123,14 @@ INVOICE_THEMES = {
     "bold": "Bold business",
 }
 
+SHOP_THEMES = {
+    "classic": "Classique",
+    "modern": "Moderne",
+    "minimal": "Minimal",
+    "boutique": "Boutique raffinée",
+    "market": "Marché coloré",
+}
+
 ADMIN_PERMISSION_LABELS = {
     "manage_products": "Gérer produits",
     "manage_orders": "Gérer commandes",

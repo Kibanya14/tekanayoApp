@@ -21,6 +21,9 @@
                 </button>
             </form>
             {% if can_manage_products %}
+            <a href="{{ url_for('seller_import_catalog', slug=shop.slug) }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                <i class="fas fa-upload"></i><span>Importer catalogue</span>
+            </a>
             <a href="{{ url_for('seller_products_page', slug=shop.slug) }}" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 currency-prompt-download">
                 <i class="fas fa-file-pdf"></i><span>Exporter PDF</span>
             </a>

@@ -2,6 +2,7 @@ from datetime import datetime
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -379,6 +380,7 @@ class SellerShop(db.Model):
     exchange_rate_usd_cdf = db.Column(db.Float, default=2800.0)
     subscription_status = db.Column(db.String(20), default="trial")  # trial, active, suspended
     invoice_theme = db.Column(db.String(30), default="classic")
+    shop_theme = db.Column(db.String(60), default="classic")
     category_niche = db.Column(db.String(60), default="shopdivers")
     is_active = db.Column(db.Boolean, default=True)
     is_portal_shop = db.Column(db.Boolean, default=False)  # Boutique portail Tekanayo
@@ -396,6 +398,28 @@ class SellerShop(db.Model):
     products = db.relationship("SellerProduct", backref="shop", lazy=True, cascade="all, delete-orphan")
     orders = db.relationship("SellerOrder", backref="shop", lazy=True, cascade="all, delete-orphan")
     deliverers = db.relationship("SellerDeliverer", backref="shop", lazy=True, cascade="all, delete-orphan")
+    categories = db.relationship("Category", backref="shop", lazy=True, cascade="all, delete-orphan")
+
+
+class Category(db.Model):
+    __tablename__ = "categories"
+
+    id = db.Column(db.Integer, primary_key=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey("seller_shops.id"), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    description = db.Column(db.Text)
+    icon = db.Column(db.String(50), default="fas fa-tag")
+
+    __table_args__ = (
+        db.UniqueConstraint("shop_id", "name", name="uq_category_shop_name"),
+    )
+
+    def __repr__(self):
+        return f"<Category shop={self.shop_id} name={self.name}>"
 
 
 class SellerAdmin(db.Model):
@@ -421,6 +445,12 @@ class SellerAdmin(db.Model):
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
 
+    def has_permission(self, perm: str) -> bool:
+        if self.is_owner:
+            return True
+        perms = {p.strip() for p in (self.permissions or "").split(",") if p.strip()}
+        return perm in perms
+
 
 class SellerProduct(db.Model):
     __tablename__ = "seller_products"
@@ -429,6 +459,7 @@ class SellerProduct(db.Model):
     shop_id = db.Column(db.Integer, db.ForeignKey("seller_shops.id"), nullable=False)
     name = db.Column(db.String(200), nullable=False)
     category = db.Column(db.String(100), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=True, index=True)
     description = db.Column(db.Text)
     price = db.Column(db.Float, nullable=False, default=0)
     compare_price = db.Column(db.Float)  # Prix de comparaison (barré)
@@ -437,10 +468,17 @@ class SellerProduct(db.Model):
     is_promoted = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
     is_featured = db.Column(db.Boolean, default=False)  # Produit mis en avant
-    sku = db.Column(db.String(100), unique=True, sparse=True)  # Code SKU optionnel
+    sku = db.Column(db.String(100), nullable=True)  # Code SKU optionnel
     import_batch_id = db.Column(db.String(100))  # ID du batch d'import
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    category_obj = db.relationship("Category", backref="products")
+
+    # Partial unique index for SKU (allows multiple NULL values but enforces uniqueness for non-NULL values)
+    __table_args__ = (
+        db.Index('idx_seller_product_sku_unique', 'sku', unique=True,
+                postgresql_where=text('sku IS NOT NULL')),
+    )
 
 
 class StockHistory(db.Model):

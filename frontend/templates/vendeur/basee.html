@@ -231,7 +231,7 @@
         </div>
 
         <!-- Contenu Principal -->
-        {% set can_import_catalog = False %}
+        {% set can_import_catalog = admin and (admin.is_owner or ('manage_products' in (seller_permissions or []))) %}
         <div class="main-content flex-1 flex flex-col overflow-hidden">
             <!-- En-tête -->
             <header class="admin-topbar shadow-sm">
@@ -254,13 +254,10 @@
                     </div>
                     <div class="flex items-center space-x-3 pl-3">
                         {% if can_import_catalog %}
-                        <form action="{{ url_for('seller_products_page', slug=shop.slug) }}" method="POST" enctype="multipart/form-data" class="hidden xl:flex items-center gap-2 bg-white border border-[var(--border)] rounded-full px-3 py-1">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="file" name="file" accept=".csv,.xlsx,.xlsm,.xltx,.xltm,.txt,.tsv,.pdf,.docx" required class="text-xs text-gray-700">
-                            <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded-full text-xs hover:bg-blue-500" title="Colonnes: name, price, category/category_id, description, quantity, compare_price, is_active, is_featured">
-                                Importer catalogue
-                            </button>
-                        </form>
+                        <a href="{{ url_for('seller_import_catalog', slug=shop.slug) }}" class="hidden xl:inline-flex items-center gap-2 bg-white border border-[var(--border)] rounded-full px-3 py-2 text-xs text-blue-700 hover:bg-blue-50">
+                            <i class="fas fa-upload"></i>
+                            Importer catalogue
+                        </a>
                         {% else %}
                         <span data-feature="Importer catalogue" class="inactive-feature inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-xs border border-gray-200">Importer catalogue</span>
                         {% endif %}

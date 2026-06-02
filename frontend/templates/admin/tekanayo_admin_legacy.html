@@ -37,6 +37,7 @@
               <p class="opacity-90 text-sm">Connectez-vous pour gérer la plateforme</p>
             </div>
             <form action="{{ url_for('admin_login_page') }}" method="POST" class="space-y-5">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div>
                 <label class="block text-sm mb-2">Email Administrateur</label>
                 <div class="relative">

@@ -319,10 +319,10 @@
                 {% if messages %}
                     <div class="p-4 space-y-2">
                         {% for category, message in messages %}
-                        <div class="p-4 rounded-lg flash-dark flash-message {% if category == 'error' %}border-red-300 text-red-700{% else %}border-emerald-300 text-emerald-700{% endif %}">
+                        <div class="p-4 rounded-lg flash-dark flash-message {% if category == 'error' %}border-red-300 text-red-700{% elif category == 'warning' %}border-amber-300 text-amber-700{% else %}border-emerald-300 text-emerald-700{% endif %}">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-2">
-                                    <i class="fas {% if category == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i>
+                                    <i class="fas {% if category == 'error' %}fa-exclamation-circle{% elif category == 'warning' %}fa-triangle-exclamation{% else %}fa-check-circle{% endif %}"></i>
                                     <span>{{ message }}</span>
                                 </div>
                                 <button onclick="this.parentElement.parentElement.remove()" class="text-gray-500 hover:text-gray-700">
